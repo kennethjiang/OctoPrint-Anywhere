@@ -4,5 +4,6 @@ services:
     build: .
     ports:
     - "5050:5000"
+    - "8080:8080"
     volumes:
     - ${PWD}:/app
