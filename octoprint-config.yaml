@@ -1,0 +1,26 @@
+accessControl:
+  salt: HZYKou1oRRxB8V64KBAdOtrnXizFCcGC
+api:
+  key: F02494E3A3914773A40984F44864B38D
+plugins:
+  announcements:
+    channels:
+      _important:
+        read_until: 1478614200
+  cura:
+    cura_engine: /usr/bin/CuraEngine
+  discovery:
+    upnpUuid: 92b03f29-734a-492d-b47b-89faa00cb142
+  slic3r:
+    slic3r_engine: /Slic3r/slic3r.pl
+  softwareupdate:
+    _config_version: 5
+    check_providers:
+      Slic3r: slic3r
+server:
+  firstRun: false
+  secretKey: dCwUojfM29Nmoo0EIY8bI8kzvAphfTrY
+  seenWizards:
+    corewizard: null
+    cura: null
+    softwareupdate: null
