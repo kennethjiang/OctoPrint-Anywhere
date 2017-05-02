@@ -4,6 +4,9 @@ services:
     build: .
     ports:
     - "5050:5000"
-    - "8080:8080"
     volumes:
     - ${PWD}:/app
+  mjpeg_streamer:
+    image: kennethjiang/stub-mjpeg-streamer
+    ports:
+    - "8080:8080"

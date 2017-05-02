@@ -40,6 +40,8 @@ import yaml
 import logging
 import logging.handlers
 
+from .mjpeg_stream import produce
+
 class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 				   octoprint.plugin.BlueprintPlugin):
 
