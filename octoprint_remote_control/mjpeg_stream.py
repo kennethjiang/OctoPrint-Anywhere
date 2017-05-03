@@ -4,13 +4,14 @@ from Queue import Queue
 from threading import Thread
 import requests
 import StringIO
+from retrying import retry
 
 #from octoprint import settings
 
+@retry(wait_exponential_multiplier=1000, wait_exponential_max=10000)
 def produce(q):
     #settings.get(["webcam", "stream"])
-    #res = requests.get('http://localhost:8080/?action=stream&1491831111684', stream=True).raw
-    res = requests.get('https://play.na7kr.us/webcam/?action=stream&1489847105132', stream=True).raw
+    res = requests.get('http://localhost:808/?action=stream&1491831111684', stream=True).raw
     data = res.readline()
 
     chunker = MjpegStreamChunker(q)
@@ -18,6 +19,8 @@ def produce(q):
     while(data):
         chunker.addLine(data)
         data = res.readline()
+
+    return True # Need to return something otherwise @retry will keep retrying
 
 class MjpegStreamChunker:
 

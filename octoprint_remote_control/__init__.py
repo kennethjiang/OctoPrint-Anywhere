@@ -11,86 +11,50 @@ from __future__ import absolute_import
 
 import octoprint.plugin
 
-import uuid
-import tempfile
-import os
-import time
-import struct
-import shutil
-import sys
-import math
-import copy
-import flask
-import serial
-import serial.tools.list_ports
-import binascii
-import re
-import collections
-import json
-import imp
-import glob
-import ctypes
-import _ctypes
-import platform
-import subprocess
-import psutil
-import socket
-import threading
-import yaml
-import logging
-import logging.handlers
+from threading import Thread
+from Queue import Queue
 
 from .mjpeg_stream import produce
 
 class SlicerPlugin(octoprint.plugin.SettingsPlugin,
-				   octoprint.plugin.BlueprintPlugin):
+        octoprint.plugin.StartupPlugin,):
 
-	##~~ SettingsPlugin mixin
+    ##~~ SettingsPlugin mixin
 
-	def get_settings_defaults(self):
-		return dict(
-			# put your plugin's default settings here
-		)
+    def get_settings_defaults(self):
+        return dict(
+            # put your plugin's default settings here
+        )
 
-	##~~ Softwareupdate hook
+    def on_settings_save(self, data):
+        old_flag = self._settings.get_boolean(["sub", "some_flag"])
 
-	def get_update_information(self):
-		# Define the configuration for your plugin to use with the Software Update
-		# Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
-		# for details.
-		return dict(
-			slicer=dict(
-				displayName="Remote Control",
-				displayVersion=self._plugin_version,
+    def get_update_information(self):
+        # Define the configuration for your plugin to use with the Software Update
+        # Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
+        # for details.
+        return dict(
+            slicer=dict(
+                displayName="Remote Control",
+                displayVersion=self._plugin_version,
 
-				# version check: github repository
-				type="github_release",
-				user="kennethjiang",
-				repo="OctoPrint-RemoteControl",
-				current=self._plugin_version,
+                # version check: github repository
+                type="github_release",
+                user="kennethjiang",
+                repo="OctoPrint-RemoteControl",
+                current=self._plugin_version,
 
-				# update method: pip
-				pip="https://github.com/kennethjiang/OctoPrint-RemoteControl/archive/{target_version}.zip"
-			)
-		)
+                # update method: pip
+                pip="https://github.com/kennethjiang/OctoPrint-RemoteControl/archive/{target_version}.zip"
+            )
+        )
 
-	# Event monitor
-	def on_event(self, event, payload) :
+    def on_after_startup(self):
+        self.q = Queue()
+        import pdb; pdb.set_trace()
+        producer = Thread(target=produce, args=(self.q,))
+        producer.start()
 
-		# check if event is slicing started
-		if event == octoprint.events.Events.SLICING_STARTED :
-
-			# Set processing slice
-			self.processingSlice = True
-
-		# Otherwise check if event is slicing done, cancelled, or failed
-		elif event == octoprint.events.Events.SLICING_DONE or event == octoprint.events.Events.SLICING_CANCELLED or event == octoprint.events.Events.SLICING_FAILED :
-
-			# Clear processing slice
-			self.processingSlice = False
-
-	def __call__(self, *callback_args, **callback_kwargs):
-		self._slicing_manager.delete_profile("cura", self.tempProfileName)
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
@@ -98,10 +62,10 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 __plugin_name__ = "RemoteControl"
 
 def __plugin_load__():
-	global __plugin_implementation__
-	__plugin_implementation__ = SlicerPlugin()
+    global __plugin_implementation__
+    __plugin_implementation__ = SlicerPlugin()
 
-	global __plugin_hooks__
-	__plugin_hooks__ = {
-		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
-	}
+    global __plugin_hooks__
+    __plugin_hooks__ = {
+        "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
+    }
