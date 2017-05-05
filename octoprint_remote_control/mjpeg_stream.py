@@ -2,9 +2,9 @@
 from __future__ import absolute_import
 from Queue import Queue
 from threading import Thread
-import requests
 import StringIO
 import re
+import urllib2
 from urlparse import urlparse
 from retrying import retry
 
@@ -14,16 +14,22 @@ from retrying import retry
 def capture_mjpeg(q, stream_url):
     if not urlparse(stream_url).scheme:
         stream_url = "http://localhost:8080/" + re.sub(r"^\/", "", stream_url)
-    res = requests.get(stream_url, stream=True).raw
-    data = res.readline()
-
-    chunker = MjpegStreamChunker(q)
-
-    while(data):
-        chunker.addLine(data)
+    try:
+        res = urllib2.urlopen(stream_url)
         data = res.readline()
 
-    return True # Need to return something otherwise @retry will keep retrying
+        chunker = MjpegStreamChunker(q)
+
+        while(data):
+            chunker.addLine(data)
+            data = res.readline()
+
+        return True # Need to return something otherwise @retry will keep retrying
+    finally:
+        try:
+            res.close()
+        except NameError:
+            pass
 
 class MjpegStreamChunker:
 
@@ -36,7 +42,7 @@ class MjpegStreamChunker:
         if not self.boundary:   # The first time addLine should be called with 'boundary' text as input
             self.boundary = line
 
-        if len(line) == len(self.boundary) and line == self.boundary:  # start of next chunk
+        if line == self.boundary:  # start of next chunk
             self.q.put(self.current_chunk.getvalue())
             self.current_chunk = StringIO.StringIO()
 
