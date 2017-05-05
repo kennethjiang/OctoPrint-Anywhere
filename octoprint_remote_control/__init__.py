@@ -11,12 +11,13 @@ from __future__ import absolute_import
 
 import octoprint.plugin
 
+import os
 from threading import Thread
 from Queue import Queue
 
-from .mjpeg_stream import produce
+from .mjpeg_stream import capture_mjpeg
 
-class SlicerPlugin(octoprint.plugin.SettingsPlugin,
+class RemoteControlPlugin(octoprint.plugin.SettingsPlugin,
         octoprint.plugin.StartupPlugin,):
 
     ##~~ SettingsPlugin mixin
@@ -50,10 +51,23 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def on_after_startup(self):
-        self.q = Queue()
-        import pdb; pdb.set_trace()
-        producer = Thread(target=produce, args=(self.q,))
-        producer.start()
+        import tornado.autoreload
+        tornado.autoreload.start()
+        for dir, _, files in os.walk(self._basefolder):
+            [tornado.autoreload.watch(dir + '/' + f) for f in files if not f.startswith('.')]
+
+        self.__connect__()
+
+    def __connect__(self):
+        self.__start_mjpeg_capture__()
+
+    def __start_mjpeg_capture__(self):
+        self.webcam = self._settings.global_get(["webcam"])
+
+        if self.webcam:
+            self.q = Queue()
+            producer = Thread(target=capture_mjpeg, args=(self.q, self.webcam["stream"]))
+            producer.start()
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
@@ -63,9 +77,10 @@ __plugin_name__ = "RemoteControl"
 
 def __plugin_load__():
     global __plugin_implementation__
-    __plugin_implementation__ = SlicerPlugin()
+    __plugin_implementation__ = RemoteControlPlugin()
 
     global __plugin_hooks__
     __plugin_hooks__ = {
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
     }
+

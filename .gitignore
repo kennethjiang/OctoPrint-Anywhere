@@ -7,6 +7,7 @@ dist
 *.egg*
 .DS_Store
 *.zip
+/.vagrant
 /data
 /node_modules
 npm-debug.log
