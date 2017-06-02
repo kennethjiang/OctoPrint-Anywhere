@@ -8,8 +8,6 @@ import urllib2
 from urlparse import urlparse
 from retrying import retry
 
-#from octoprint import settings
-
 #@retry(wait_exponential_multiplier=1000, wait_exponential_max=10000)
 def capture_mjpeg(q, stream_url):
     if not urlparse(stream_url).scheme:
@@ -51,7 +49,8 @@ class MjpegStreamChunker:
 
 if __name__ == "__main__":
     q = Queue()
-    producer = Thread(target=capture_mjpeg, args=(q,"http://localhost:8080/?action=stream"))
+    producer = Thread(target=capture_mjpeg, args=(q,"http://192.168.134.30:8080/?action=stream"))
+    producer.setDaemon(True)
     producer.start()
     with open("/tmp/test.out", 'w') as f:
         while True:

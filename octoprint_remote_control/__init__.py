@@ -14,8 +14,20 @@ import octoprint.plugin
 import os
 from threading import Thread
 from Queue import Queue
+import websocket
+
 
 from .mjpeg_stream import capture_mjpeg
+from .octoprint_ws import listen_to_octoprint
+
+def on_message(ws, message):
+    print message
+
+def on_error(ws, error):
+    print error
+
+def on_close(ws):
+    print "### closed ###"
 
 class RemoteControlPlugin(octoprint.plugin.SettingsPlugin,
         octoprint.plugin.StartupPlugin,):
@@ -59,6 +71,14 @@ class RemoteControlPlugin(octoprint.plugin.SettingsPlugin,
         self.__connect__()
 
     def __connect__(self):
+        listen_to_octoprint(self._settings.settings)
+        websocket.enableTrace(True)
+        ws = websocket.WebSocketApp("ws://10.0.2.2:6001/app/ws",
+                                  on_message = on_message,
+                                  on_error = on_error,
+                                  on_close = on_close,
+                                  header = ["Authorization: Bearer 1234"])
+        ws.run_forever()
         self.__start_mjpeg_capture__()
 
     def __start_mjpeg_capture__(self):
@@ -67,8 +87,8 @@ class RemoteControlPlugin(octoprint.plugin.SettingsPlugin,
         if self.webcam:
             self.q = Queue()
             producer = Thread(target=capture_mjpeg, args=(self.q, self.webcam["stream"]))
+            producer.setDaemon(True)
             producer.start()
-
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
