@@ -11,23 +11,15 @@ from __future__ import absolute_import
 
 import octoprint.plugin
 
+import logging
 import os
 from threading import Thread
 from Queue import Queue
-import websocket
-
+import backoff
 
 from .mjpeg_stream import capture_mjpeg
 from .octoprint_ws import listen_to_octoprint
-
-def on_message(ws, message):
-    print message
-
-def on_error(ws, error):
-    print error
-
-def on_close(ws):
-    print "### closed ###"
+from .server_ws import ServerSocket
 
 class RemoteControlPlugin(octoprint.plugin.SettingsPlugin,
         octoprint.plugin.StartupPlugin,):
@@ -63,31 +55,61 @@ class RemoteControlPlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def on_after_startup(self):
+        self._logger = logging.getLogger(__name__)
+
         import tornado.autoreload
         tornado.autoreload.start()
         for dir, _, files in os.walk(self._basefolder):
             [tornado.autoreload.watch(dir + '/' + f) for f in files if not f.startswith('.')]
 
-        self.__connect__()
-
-    def __connect__(self):
-        listen_to_octoprint(self._settings.settings)
-        websocket.enableTrace(True)
-        ws = websocket.WebSocketApp("ws://10.0.2.2:6001/app/ws",
-                                  on_message = on_message,
-                                  on_error = on_error,
-                                  on_close = on_close,
-                                  header = ["Authorization: Bearer 1234"])
-        ws.run_forever()
         self.__start_mjpeg_capture__()
+
+        self.message_q = Queue()
+        # listen to OctoPrint websocket in another thread
+        listen_to_octoprint(self._settings.settings, self.message_q)
+
+        main_thread = Thread(target=self.__message_loop__)
+        main_thread.daemon = True
+        main_thread.start()
+
+    @backoff.on_exception(backoff.expo, Exception, max_value=240)
+    @backoff.on_predicate(backoff.expo, max_value=240)
+    def __message_loop__(self):
+
+        @backoff.on_exception(backoff.fibo, Exception, max_tries=8)
+        @backoff.on_predicate(backoff.fibo, max_tries=8)
+        def __forward_ws__(ss, message_q, webcam_q):
+            while ss.connected():
+                while not message_q.empty():
+                    ss.send_text(message_q.get_nowait())
+
+                last_chunk = None
+                while not webcam_q.empty():  # Get the last chunk and empty the queue
+                    last_chunk = webcam_q.get_nowait()
+                if last_chunk: ss.send_text(last_chunk)
+
+        self.__connect_server_ws__()
+        __forward_ws__(self.ss, self.message_q, self.webcam_q)
+        self._logger.warn("Time out in waiting for server ws connection")
+        try:
+            self.ss.close()
+        except:
+            pass
+
+    def __connect_server_ws__(self):
+        self.ss = ServerSocket("ws://10.0.2.2:6001/app/ws", "1234")
+        #self.ss = ServerSocket("ws://getanywhere-stg.herokuapp.com/app/ws", "1234")
+        wst = Thread(target=self.ss.run)
+        wst.daemon = True
+        wst.start()
 
     def __start_mjpeg_capture__(self):
         self.webcam = self._settings.global_get(["webcam"])
 
         if self.webcam:
-            self.q = Queue()
-            producer = Thread(target=capture_mjpeg, args=(self.q, self.webcam["stream"]))
-            producer.setDaemon(True)
+            self.webcam_q = Queue()
+            producer = Thread(target=capture_mjpeg, args=(self.webcam_q, self.webcam["stream"]))
+            producer.daemon = True
             producer.start()
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py

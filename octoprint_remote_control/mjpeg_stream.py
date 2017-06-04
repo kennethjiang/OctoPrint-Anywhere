@@ -6,12 +6,14 @@ import StringIO
 import re
 import urllib2
 from urlparse import urlparse
-from retrying import retry
+import backoff
 
-#@retry(wait_exponential_multiplier=1000, wait_exponential_max=10000)
+@backoff.on_exception(backoff.expo, Exception)
+@backoff.on_predicate(backoff.fibo)
 def capture_mjpeg(q, stream_url):
     if not urlparse(stream_url).scheme:
         stream_url = "http://localhost:8080/" + re.sub(r"^\/", "", stream_url)
+
     try:
         res = urllib2.urlopen(stream_url)
         data = res.readline()
@@ -22,7 +24,6 @@ def capture_mjpeg(q, stream_url):
             chunker.addLine(data)
             data = res.readline()
 
-        return True # Need to return something otherwise @retry will keep retrying
     finally:
         try:
             res.close()
@@ -50,7 +51,7 @@ class MjpegStreamChunker:
 if __name__ == "__main__":
     q = Queue()
     producer = Thread(target=capture_mjpeg, args=(q,"http://192.168.134.30:8080/?action=stream"))
-    producer.setDaemon(True)
+    producer.daemon = True
     producer.start()
     with open("/tmp/test.out", 'w') as f:
         while True:
