@@ -21,8 +21,9 @@ from .mjpeg_stream import capture_mjpeg
 from .octoprint_ws import listen_to_octoprint
 from .server_ws import ServerSocket
 
-class RemoteControlPlugin(octoprint.plugin.SettingsPlugin,
-        octoprint.plugin.StartupPlugin,):
+class AnywherePlugin(octoprint.plugin.SettingsPlugin,
+                          octoprint.plugin.TemplatePlugin,
+                          octoprint.plugin.StartupPlugin,):
 
     ##~~ SettingsPlugin mixin
 
@@ -39,18 +40,18 @@ class RemoteControlPlugin(octoprint.plugin.SettingsPlugin,
         # Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
         # for details.
         return dict(
-            slicer=dict(
-                displayName="Remote Control",
+            anywhere=dict(
+                displayName="OctoPrint Anywhere",
                 displayVersion=self._plugin_version,
 
                 # version check: github repository
                 type="github_release",
                 user="kennethjiang",
-                repo="OctoPrint-RemoteControl",
+                repo="OctoPrint-Anywhere",
                 current=self._plugin_version,
 
                 # update method: pip
-                pip="https://github.com/kennethjiang/OctoPrint-RemoteControl/archive/{target_version}.zip"
+                pip="https://github.com/kennethjiang/OctoPrint-Anywhere/archive/{target_version}.zip"
             )
         )
 
@@ -86,7 +87,10 @@ class RemoteControlPlugin(octoprint.plugin.SettingsPlugin,
                 last_chunk = None
                 while not webcam_q.empty():  # Get the last chunk and empty the queue
                     last_chunk = webcam_q.get_nowait()
-                if last_chunk: ss.send_text(last_chunk)
+                if last_chunk:
+                    ss.send_binary(last_chunk)
+                    import time
+                    time.sleep(30)
 
         self.__connect_server_ws__()
         __forward_ws__(self.ss, self.message_q, self.webcam_q)
@@ -97,7 +101,7 @@ class RemoteControlPlugin(octoprint.plugin.SettingsPlugin,
             pass
 
     def __connect_server_ws__(self):
-        self.ss = ServerSocket("ws://10.0.2.2:6001/app/ws", "1234")
+        self.ss = ServerSocket("ws://10.0.2.2:6001/app/ws/device", "1234")
         #self.ss = ServerSocket("ws://getanywhere-stg.herokuapp.com/app/ws", "1234")
         wst = Thread(target=self.ss.run)
         wst.daemon = True
@@ -115,11 +119,11 @@ class RemoteControlPlugin(octoprint.plugin.SettingsPlugin,
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
-__plugin_name__ = "RemoteControl"
+__plugin_name__ = "OctoPrint Anywhere"
 
 def __plugin_load__():
     global __plugin_implementation__
-    __plugin_implementation__ = RemoteControlPlugin()
+    __plugin_implementation__ = AnywhereControlPlugin()
 
     global __plugin_hooks__
     __plugin_hooks__ = {
