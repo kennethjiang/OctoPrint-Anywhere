@@ -22,18 +22,22 @@ from .octoprint_ws import listen_to_octoprint
 from .server_ws import ServerSocket
 
 class AnywherePlugin(octoprint.plugin.SettingsPlugin,
-                          octoprint.plugin.TemplatePlugin,
-                          octoprint.plugin.StartupPlugin,):
+                     octoprint.plugin.AssetPlugin,
+                     octoprint.plugin.TemplatePlugin,
+                     octoprint.plugin.StartupPlugin,):
+
+    ##~~ AssetPlugin mixin
+    def get_assets(self):
+        return dict(
+                js=["js/anywhere.js"]
+                )
 
     ##~~ SettingsPlugin mixin
-
     def get_settings_defaults(self):
-        return dict(
-            # put your plugin's default settings here
-        )
+        pass
 
     def on_settings_save(self, data):
-        old_flag = self._settings.get_boolean(["sub", "some_flag"])
+        pass
 
     def get_update_information(self):
         # Define the configuration for your plugin to use with the Software Update
@@ -55,6 +59,13 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             )
         )
 
+    def get_template_configs(self):
+        return [ dict(type="settings", template="anywhere_settings.jinja2", custom_bindings=True) ]
+
+    def get_template_vars(self):
+        self.__load_config()
+        return self.config
+
     def on_after_startup(self):
         self._logger = logging.getLogger(__name__)
 
@@ -62,6 +73,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         tornado.autoreload.start()
         for dir, _, files in os.walk(self._basefolder):
             [tornado.autoreload.watch(dir + '/' + f) for f in files if not f.startswith('.')]
+
+        self.__load_config()
 
         self.__start_mjpeg_capture__()
 
@@ -72,6 +85,23 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         main_thread = Thread(target=self.__message_loop__)
         main_thread.daemon = True
         main_thread.start()
+
+    def __load_config(self):
+        CONFIG_PATH= self._basefolder + "/.config.yaml"
+        try:
+            import yaml
+            with open(CONFIG_PATH, 'r') as stream:
+                self.config = yaml.load(stream)
+        except IOError:
+            import random
+            import string
+            # If config file not found, create a new random string as token
+            token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))
+
+            with open(CONFIG_PATH, 'w') as outfile:
+                c = dict(token=token, registered=False)
+                yaml.dump(c, outfile, default_flow_style=False)
+                self.config = c
 
     @backoff.on_exception(backoff.expo, Exception, max_value=240)
     @backoff.on_predicate(backoff.expo, max_value=240)
@@ -123,7 +153,7 @@ __plugin_name__ = "OctoPrint Anywhere"
 
 def __plugin_load__():
     global __plugin_implementation__
-    __plugin_implementation__ = AnywhereControlPlugin()
+    __plugin_implementation__ = AnywherePlugin()
 
     global __plugin_hooks__
     __plugin_hooks__ = {
