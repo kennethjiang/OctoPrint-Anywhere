@@ -10,12 +10,14 @@ from __future__ import absolute_import
 # Take a look at the documentation on what other plugin mixins are available.
 
 import octoprint.plugin
+import yaml
 
 import logging
 import os
-from threading import Thread
+import threading
 from Queue import Queue
 import backoff
+import requests
 
 from .mjpeg_stream import capture_mjpeg
 from .octoprint_ws import listen_to_octoprint
@@ -63,7 +65,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         return [ dict(type="settings", template="anywhere_settings.jinja2", custom_bindings=True) ]
 
     def get_template_vars(self):
-        self.__load_config()
+        self.__load_config__()
         return self.config
 
     def on_after_startup(self):
@@ -74,7 +76,9 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         for dir, _, files in os.walk(self._basefolder):
             [tornado.autoreload.watch(dir + '/' + f) for f in files if not f.startswith('.')]
 
-        self.__load_config()
+        main_thread = threading.Thread(target=self.__message_loop__)
+        main_thread.daemon = True
+        main_thread.start()
 
         self.__start_mjpeg_capture__()
 
@@ -82,14 +86,10 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         # listen to OctoPrint websocket in another thread
         listen_to_octoprint(self._settings.settings, self.message_q)
 
-        main_thread = Thread(target=self.__message_loop__)
-        main_thread.daemon = True
-        main_thread.start()
 
-    def __load_config(self):
+    def __load_config__(self):
         CONFIG_PATH= self._basefolder + "/.config.yaml"
         try:
-            import yaml
             with open(CONFIG_PATH, 'r') as stream:
                 self.config = yaml.load(stream)
         except IOError:
@@ -99,9 +99,19 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))
 
             with open(CONFIG_PATH, 'w') as outfile:
-                c = dict(token=token, registered=False)
+                c = dict(
+                        token=token,
+                        registered=False,
+                        ws_host="wss://app.getanywhere.io",
+                        api_host="https://app.getanywhere.io"
+                        )
                 yaml.dump(c, outfile, default_flow_style=False)
                 self.config = c
+
+    def __save_config__(self):
+        CONFIG_PATH= self._basefolder + "/.config.yaml"
+        with open(CONFIG_PATH, 'w') as outfile:
+            yaml.dump(self.config, outfile, default_flow_style=False)
 
     @backoff.on_exception(backoff.expo, Exception, max_value=240)
     @backoff.on_predicate(backoff.expo, max_value=240)
@@ -122,6 +132,13 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                     import time
                     time.sleep(30)
 
+        self.__load_config__()
+
+        if (not self.config['registered']):
+            self.__probe_auth_token__()  # Forever loop to probe if token is registered with server
+            self.config['registered'] = True
+            self.__save_config__()
+
         self.__connect_server_ws__()
         __forward_ws__(self.ss, self.message_q, self.webcam_q)
         self._logger.warn("Time out in waiting for server ws connection")
@@ -131,18 +148,21 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             pass
 
     def __connect_server_ws__(self):
-        self.ss = ServerSocket("ws://10.0.2.2:6001/app/ws/device", "1234")
-        #self.ss = ServerSocket("ws://getanywhere-stg.herokuapp.com/app/ws", "1234")
-        wst = Thread(target=self.ss.run)
+        self.ss = ServerSocket(self.config['ws_host'] + "/app/ws/device", self.config['token'])
+        wst = threading.Thread(target=self.ss.run)
         wst.daemon = True
         wst.start()
+
+    @backoff.on_exception(backoff.constant, Exception, interval=5)
+    def __probe_auth_token__(self):
+        requests.get(self.config['api_host'] + "/api/ping", headers={"Authorization": "Bearer " + self.config['token']}).raise_for_status()
 
     def __start_mjpeg_capture__(self):
         self.webcam = self._settings.global_get(["webcam"])
 
         if self.webcam:
             self.webcam_q = Queue()
-            producer = Thread(target=capture_mjpeg, args=(self.webcam_q, self.webcam["stream"]))
+            producer = threading.Thread(target=capture_mjpeg, args=(self.webcam_q, self.webcam["stream"]))
             producer.daemon = True
             producer.start()
 
