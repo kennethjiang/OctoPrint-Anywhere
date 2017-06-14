@@ -15,7 +15,12 @@ def listen_to_octoprint(settings, q):
         print("<3")
 
     def on_message(ws, message_type, message_payload):
+        def __deplete_queue__(q):
+            while q.qsize() > 10:
+                q.get_nowait()
+
         print("Message: {}, Payload: {}".format(message_type, json.dumps(message_payload)))
+        __deplete_queue__(q)
         q.put(json.dumps(message_payload))
 
     octoprint_client.init_client(settings)
