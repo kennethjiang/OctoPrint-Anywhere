@@ -124,9 +124,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 while not message_q.empty():
                     ss.send_text(message_q.get_nowait())
 
-                last_chunk = None
-                while not webcam_q.empty():  # Get the last chunk and empty the queue
-                    last_chunk = webcam_q.get_nowait()
+                last_chunk = webcam_q.get_nowait()
                 if last_chunk:
                     ss.send_binary(last_chunk)
                     import time
