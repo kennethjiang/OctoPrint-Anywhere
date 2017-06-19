@@ -18,6 +18,7 @@ import threading
 from Queue import Queue
 import backoff
 import requests
+from ratelimit import rate_limited
 
 from .mjpeg_stream import capture_mjpeg
 from .octoprint_ws import listen_to_octoprint
@@ -120,15 +121,19 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         @backoff.on_exception(backoff.fibo, Exception, max_tries=8)
         @backoff.on_predicate(backoff.fibo, max_tries=8)
         def __forward_ws__(ss, message_q, webcam_q):
-            while ss.connected():
+
+            @rate_limited(period=1, every=2.0)
+            def __exhaust_message_queues__(ss, message_q, webcam_q):
                 while not message_q.empty():
                     ss.send_text(message_q.get_nowait())
 
                 last_chunk = webcam_q.get_nowait()
                 if last_chunk:
                     ss.send_binary(last_chunk)
-                    import time
-                    time.sleep(30)
+
+            while ss.connected():
+                __exhaust_message_queues__(ss, message_q, webcam_q)
+
 
         self.__load_config__()
 
