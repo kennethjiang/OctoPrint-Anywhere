@@ -11,6 +11,7 @@ from __future__ import absolute_import
 
 import octoprint.plugin
 import yaml
+import json
 
 import logging
 import os
@@ -151,10 +152,31 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             pass
 
     def __connect_server_ws__(self):
-        self.ss = ServerSocket(self.config['ws_host'] + "/app/ws/device", self.config['token'])
+        self.ss = ServerSocket(self.config['ws_host'] + "/app/ws/device", self.config['token'], on_message=self.__on_server_ws_msg__)
         wst = threading.Thread(target=self.ss.run)
         wst.daemon = True
         wst.start()
+
+    def __on_server_ws_msg__(self, ws, msg):
+
+        def __process_job_cmd__(cmd):
+            if cmd == 'pause':
+                self._printer.pause_print()
+            elif cmd == 'cancel':
+                self._printer.cancel_print()
+            elif cmd == 'resume':
+                self._printer.resume_print()
+
+        def __process_cmd__(cmd):
+            for k, v in cmd.iteritems():
+                if k == 'job':
+                    __process_job_cmd__(v)
+
+        msgDict = json.loads(msg)
+        for k, v in msgDict.iteritems():
+            if k == 'cmd':
+                __process_cmd__(v)
+
 
     @backoff.on_exception(backoff.constant, Exception, interval=5)
     def __probe_auth_token__(self):

@@ -19,7 +19,6 @@ def listen_to_octoprint(settings, q):
             while q.qsize() > 10:
                 q.get_nowait()
 
-        print("Message: {}, Payload: {}".format(message_type, json.dumps(message_payload)))
         __deplete_queue__(q)
         q.put(json.dumps(message_payload))
 

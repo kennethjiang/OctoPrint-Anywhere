@@ -5,19 +5,16 @@ from threading import Thread
 import websocket
 
 class ServerSocket:
-    def on_message(self, ws, message):
-        print message
-
     def on_error(self, ws, error):
         print error
 
     def on_close(self, ws):
         print "### closed ###"
 
-    def __init__(self, url, token):
+    def __init__(self, url, token, on_message):
         #websocket.enableTrace(True)
         self.ws = websocket.WebSocketApp(url,
-                                  on_message = self.on_message,
+                                  on_message = on_message,
                                   on_error = self.on_error,
                                   on_close = self.on_close,
                                   header = ["Authorization: Bearer " + token],
