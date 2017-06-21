@@ -135,7 +135,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             while ss.connected():
                 __exhaust_message_queues__(ss, message_q, webcam_q)
 
-
         self.__load_config__()
 
         if (not self.config['registered']):
