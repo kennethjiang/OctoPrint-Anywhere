@@ -15,12 +15,16 @@ def listen_to_octoprint(settings, q):
         print("!!! Error: {}".format(error))
 
     def on_heartbeat(ws):
-        q.put(json.dumps({'hb': {'ips': ip_addresses}}))
+        q.put(json.dumps({'hb': {'ipAddrs': ip_addresses}}))
 
     def on_message(ws, message_type, message_payload):
+
         def __deplete_queue__(q):
             while q.qsize() > 10:
                 q.get_nowait()
+
+        if type(message_payload) is not dict:
+            return
 
         __deplete_queue__(q)
         q.put(json.dumps(message_payload))
