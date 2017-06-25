@@ -78,13 +78,15 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         for dir, _, files in os.walk(self._basefolder):
             [tornado.autoreload.watch(dir + '/' + f) for f in files if not f.startswith('.')]
 
+        self.message_q = Queue()
+        self.webcam_q = Queue()
+
         main_thread = threading.Thread(target=self.__message_loop__)
         main_thread.daemon = True
         main_thread.start()
 
         self.__start_mjpeg_capture__()
 
-        self.message_q = Queue()
         # listen to OctoPrint websocket in another thread
         listen_to_octoprint(self._settings.settings, self.message_q)
 
@@ -185,7 +187,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         self.webcam = self._settings.global_get(["webcam"])
 
         if self.webcam:
-            self.webcam_q = Queue()
             producer = threading.Thread(target=capture_mjpeg, args=(self.webcam_q, self.webcam["stream"]))
             producer.daemon = True
             producer.start()

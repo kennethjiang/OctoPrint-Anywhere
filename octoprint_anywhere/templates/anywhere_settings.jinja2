@@ -1,3 +1,29 @@
-<h4>Please register your printer <a href={{"{}/pages/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">here</a>.</h4>
+{% if plugin_anywhere_registered %}
+<h3>Hurrah! 3D printer already registered. Nothing to do here.</h3>
 
-<p>If the link doesn't work, please open a new browser window and copy this link to the address bar: {{"{}/pages/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}}</p>
+<div>
+    <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Not seeing your 3D printer in Anywhere.io?</a></small></div>
+    <div class="hide">
+        <a class="btn btn-primary" a href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Re-register</a>
+        <p>If the button doesn't work, open a new browser window and copy this link to the address bar: <code>{{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}}</code></p>
+        <p>If it still does not work, please <a href="https://github.com/kennethjiang/OctoPrint-Anywhere/issues/new">report a bug</a>.</p>
+    </div>
+</div>
+{% else %}
+<a class="btn btn-primary" a href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Register my 3D printer on Anywhere.io</a>
+
+<div>
+    <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Having difficulties registering?</a></small></div>
+    <div class="hide">
+      <ul>
+        <li>Make sure your browser, as well as Raspberry Pi, are both connected to internet.</li>
+        <li>Open a new browser window and copy this link to the address bar: <code>{{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}}</code></li>
+        <li>If it still does not work, please <a href="https://github.com/kennethjiang/OctoPrint-Anywhere/issues/new">report a bug</a>.</li>
+      </ul>
+    </div>
+</div>
+{% endif %}
+
+<h3>About OctoPrint Anywhere</h3>
+<p>OctoPrint Anywhere is an OctoPrint plugin built on platform <a href="https://www.getanywhere.io">Anywhere.io</a></p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/i7hqe3vEnnI" frameborder="0" allowfullscreen></iframe>

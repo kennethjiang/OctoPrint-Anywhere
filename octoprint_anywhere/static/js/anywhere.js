@@ -8,7 +8,7 @@
 'use strict';
 
 function AnywhereViewModel(parameters) {
-    debugger;
+    //debugger;
 
 }
 
