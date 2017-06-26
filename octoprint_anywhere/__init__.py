@@ -78,8 +78,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         for dir, _, files in os.walk(self._basefolder):
             [tornado.autoreload.watch(dir + '/' + f) for f in files if not f.startswith('.')]
 
-        self.message_q = Queue()
-        self.webcam_q = Queue()
+        self.message_q = Queue(maxsize=2048)
+        self.webcam_q = Queue(maxsize=32)
 
         main_thread = threading.Thread(target=self.__message_loop__)
         main_thread.daemon = True
@@ -106,8 +106,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 c = dict(
                         token=token,
                         registered=False,
-                        ws_host="wss://app.getanywhere.io",
-                        api_host="https://app.getanywhere.io"
+                        ws_host="wss://www.getanywhere.io",
+                        api_host="https://www.getanywhere.io"
                         )
                 yaml.dump(c, outfile, default_flow_style=False)
                 self.config = c
@@ -130,9 +130,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 while not message_q.empty():
                     ss.send_text(message_q.get_nowait())
 
-                last_chunk = webcam_q.get_nowait()
-                if last_chunk:
-                    ss.send_binary(last_chunk)
+                while not webcam_q.empty():
+                    ss.send_binary(webcam_q.get_nowait())
 
             while ss.connected():
                 __exhaust_message_queues__(ss, message_q, webcam_q)
