@@ -73,11 +73,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     def on_after_startup(self):
         self._logger = logging.getLogger(__name__)
 
-        import tornado.autoreload
-        tornado.autoreload.start()
-        for dir, _, files in os.walk(self._basefolder):
-            [tornado.autoreload.watch(dir + '/' + f) for f in files if not f.startswith('.')]
-
         self.message_q = Queue(maxsize=2048)
         self.webcam_q = Queue(maxsize=32)
 

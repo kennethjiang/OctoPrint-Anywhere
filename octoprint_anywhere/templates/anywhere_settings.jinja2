@@ -2,7 +2,7 @@
 <h3>Hurrah! 3D printer already registered. Nothing to do here.</h3>
 
 <div>
-    <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Not seeing your 3D printer in Anywhere.io?</a></small></div>
+    <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Not seeing your 3D printer in getanywhere.io?</a></small></div>
     <div class="hide">
         <a class="btn btn-primary" a href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Re-register</a>
         <p>If the button doesn't work, open a new browser window and copy this link to the address bar: <code>{{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}}</code></p>
@@ -10,7 +10,7 @@
     </div>
 </div>
 {% else %}
-<a class="btn btn-primary" a href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Register my 3D printer on Anywhere.io</a>
+<a class="btn btn-primary" a href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Register my 3D printer on getanywhere.io</a>
 
 <div>
     <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Having difficulties registering?</a></small></div>
