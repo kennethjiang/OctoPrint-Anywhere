@@ -12,7 +12,7 @@ import backoff
 @backoff.on_predicate(backoff.fibo)
 def capture_mjpeg(q, stream_url):
     if not urlparse(stream_url).scheme:
-        stream_url = "http://localhost:8080/" + re.sub(r"^\/", "", stream_url)
+        stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
 
     try:
         res = urllib2.urlopen(stream_url)
