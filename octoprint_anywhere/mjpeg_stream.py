@@ -41,7 +41,7 @@ class MjpegStreamChunker:
         if not self.boundary:   # The first time addLine should be called with 'boundary' text as input
             self.boundary = line
 
-        if line == self.boundary:  # start of next chunk
+        if len(line) == len(self.boundary) and line == self.boundary:  # start of next chunk
             self.q.put(self.current_chunk.getvalue())
             self.current_chunk = StringIO.StringIO()
 
