@@ -101,7 +101,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 c = dict(
                         token=token,
                         registered=False,
-                        ws_host="wss://www.getanywhere.io",
+                        ws_host="ws://getanywhere.herokuapp.com",
                         api_host="https://www.getanywhere.io"
                         )
                 yaml.dump(c, outfile, default_flow_style=False)
@@ -120,7 +120,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         @backoff.on_predicate(backoff.fibo, max_tries=8)
         def __forward_ws__(ss, message_q, webcam_q):
 
-            @rate_limited(period=1, every=2.0)
+            @rate_limited(period=1, every=4.0)
             def __exhaust_message_queues__(ss, message_q, webcam_q):
                 while not message_q.empty():
                     ss.send_text(message_q.get_nowait())
