@@ -73,8 +73,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     def on_after_startup(self):
         self._logger = logging.getLogger(__name__)
 
-        self.message_q = Queue(maxsize=2048)
-        self.webcam_q = Queue(maxsize=32)
+        self.message_q = Queue(maxsize=128)
+        self.webcam_q = Queue(maxsize=1)
 
         main_thread = threading.Thread(target=self.__message_loop__)
         main_thread.daemon = True
@@ -125,11 +125,12 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 while not message_q.empty():
                     ss.send_text(message_q.get_nowait())
 
-                while not webcam_q.empty():
+                if not webcam_q.empty():
                     ss.send_binary(webcam_q.get_nowait())
 
             while ss.connected():
                 __exhaust_message_queues__(ss, message_q, webcam_q)
+            self.__logger.warn("Not connected to server ws or connection lost")
 
         self.__load_config__()
 
@@ -140,7 +141,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
         self.__connect_server_ws__()
         __forward_ws__(self.ss, self.message_q, self.webcam_q)
-        self._logger.warn("Time out in waiting for server ws connection")
+        self._logger.warn("Reached max backoff in waiting for server ws connection")
         try:
             self.ss.close()
         except:

@@ -37,16 +37,11 @@ class MjpegStreamChunker:
         self.boundary = None
         self.current_chunk = StringIO.StringIO()
 
-    def __deplete_queue__(self):
-        while not self.q.empty():
-            self.q.get_nowait()
-
     def addLine(self, line):
         if not self.boundary:   # The first time addLine should be called with 'boundary' text as input
             self.boundary = line
 
         if line == self.boundary:  # start of next chunk
-            self.__deplete_queue__()
             self.q.put(self.current_chunk.getvalue())
             self.current_chunk = StringIO.StringIO()
 
