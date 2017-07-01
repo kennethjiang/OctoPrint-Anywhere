@@ -130,7 +130,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
             while ss.connected():
                 __exhaust_message_queues__(ss, message_q, webcam_q)
-            self.__logger.warn("Not connected to server ws or connection lost")
+            self._logger.warn("Not connected to server ws or connection lost")
 
         self.__load_config__()
 

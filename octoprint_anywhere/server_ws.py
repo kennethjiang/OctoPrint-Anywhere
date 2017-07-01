@@ -24,7 +24,6 @@ class ServerSocket:
         self.ws.run_forever()
 
     def send_binary(self, data):
-        print(len(data))
         self.ws.send(data, websocket.ABNF.OPCODE_BINARY)
 
     def send_text(self, data):
