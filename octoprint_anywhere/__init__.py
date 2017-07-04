@@ -91,8 +91,11 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         old_config_path = self._basefolder + "/.config.yaml"
         import os.path
         if os.path.isfile(old_config_path):
-            import shutil
-            shutil.move(old_config_path, CONFIG_PATH)
+            try:
+                import shutil
+                shutil.move(old_config_path, CONFIG_PATH)
+            except:
+                pass
 
         try:
             with open(CONFIG_PATH, 'r') as stream:
