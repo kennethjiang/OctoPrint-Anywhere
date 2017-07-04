@@ -87,7 +87,13 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
 
     def __load_config__(self):
-        CONFIG_PATH= self._basefolder + "/.config.yaml"
+        CONFIG_PATH = self.get_plugin_data_folder() + "/.config.yaml"
+        old_config_path = self._basefolder + "/.config.yaml"
+        import os.path
+        if os.path.isfile(old_config_path):
+            import shutil
+            shutil.move(old_config_path, CONFIG_PATH)
+
         try:
             with open(CONFIG_PATH, 'r') as stream:
                 self.config = yaml.load(stream)
@@ -108,7 +114,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 self.config = c
 
     def __save_config__(self):
-        CONFIG_PATH= self._basefolder + "/.config.yaml"
+        CONFIG_PATH= self.get_plugin_data_folder() + "/.config.yaml"
         with open(CONFIG_PATH, 'w') as outfile:
             yaml.dump(self.config, outfile, default_flow_style=False)
 
