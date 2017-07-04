@@ -7,6 +7,7 @@ import re
 import urllib2
 from urlparse import urlparse
 import backoff
+from contextlib import closing
 
 @backoff.on_exception(backoff.expo, Exception)
 @backoff.on_predicate(backoff.fibo)
@@ -14,21 +15,13 @@ def capture_mjpeg(q, stream_url):
     if not urlparse(stream_url).scheme:
         stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
 
-    try:
-        res = urllib2.urlopen(stream_url)
-        data = res.readline()
+    while True:
+        with closing(urllib2.urlopen(stream_url)) as res:
+            chunker = MjpegStreamChunker(q)
 
-        chunker = MjpegStreamChunker(q)
-
-        while(data):
-            chunker.addLine(data)
             data = res.readline()
-
-    finally:
-        try:
-            res.close()
-        except NameError:
-            pass
+            while not chunker.addLine(data):
+                data = res.readline()
 
 class MjpegStreamChunker:
 
@@ -37,15 +30,21 @@ class MjpegStreamChunker:
         self.boundary = None
         self.current_chunk = StringIO.StringIO()
 
+    # Return: True: a new chunk is found.
+    #         False: in the middle of the chunk
     def addLine(self, line):
         if not self.boundary:   # The first time addLine should be called with 'boundary' text as input
             self.boundary = line
+            self.current_chunk.write(line)
+            return False
 
         if len(line) == len(self.boundary) and line == self.boundary:  # start of next chunk
             self.q.put(self.current_chunk.getvalue())
             self.current_chunk = StringIO.StringIO()
+            return True
 
         self.current_chunk.write(line)
+        return False
 
 
 if __name__ == "__main__":
