@@ -94,8 +94,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             try:
                 import shutil
                 shutil.move(old_config_path, CONFIG_PATH)
-            except:
-                pass
+            except Exception as ex:
+                self._logger.exception(ex)
 
         try:
             with open(CONFIG_PATH, 'r') as stream:
