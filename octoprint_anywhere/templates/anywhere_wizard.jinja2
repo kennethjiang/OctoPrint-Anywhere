@@ -1,0 +1,16 @@
+<a class="btn btn-primary" a href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Register my 3D printer on getanywhere.io</a>
+
+<div>
+    <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Having difficulties registering?</a></small></div>
+    <div class="hide">
+      <ul>
+        <li>Make sure your browser, as well as Raspberry Pi, are both connected to internet.</li>
+        <li>Open a new browser window and copy this link to the address bar: <code>{{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}}</code></li>
+        <li>If it still does not work, please <a href="https://github.com/kennethjiang/OctoPrint-Anywhere/issues/new">report a bug</a>.</li>
+      </ul>
+    </div>
+</div>
+
+<h3>About OctoPrint Anywhere</h3>
+<p>OctoPrint Anywhere extends your control beyond the local network. Check the video below for a quick overview.</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/rewYtchHAc4" frameborder="0" allowfullscreen></iframe>

@@ -28,7 +28,8 @@ from .server_ws import ServerSocket
 class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.AssetPlugin,
                      octoprint.plugin.TemplatePlugin,
-                     octoprint.plugin.StartupPlugin,):
+                     octoprint.plugin.StartupPlugin,
+                     octoprint.plugin.WizardPlugin,):
 
     ##~~ AssetPlugin mixin
     def get_assets(self):
@@ -36,7 +37,25 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 js=["js/anywhere.js"]
                 )
 
+    ##########
+    ### Wizard API
+    ##########
+
+    def is_wizard_required(self):
+        self.__load_config__()
+        return not self.config['registered']
+
+    def get_wizard_version(self):
+        return 1
+        # Wizard version numbers used in releases
+        # < 1.4.2 : no wizard
+        # 1.4.2 : 1
+        # 1.4.3 : 1
+
     ##~~ SettingsPlugin mixin
+    def get_settings_defaults(self):
+        return dict()
+
     def get_settings_defaults(self):
         pass
 
