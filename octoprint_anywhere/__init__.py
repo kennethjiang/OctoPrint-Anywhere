@@ -52,16 +52,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         # 1.4.2 : 1
         # 1.4.3 : 1
 
-    ##~~ SettingsPlugin mixin
-    def get_settings_defaults(self):
-        return dict()
-
-    def get_settings_defaults(self):
-        pass
-
-    def on_settings_save(self, data):
-        pass
-
     def get_update_information(self):
         # Define the configuration for your plugin to use with the Software Update
         # Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
