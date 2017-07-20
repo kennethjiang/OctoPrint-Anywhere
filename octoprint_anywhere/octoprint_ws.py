@@ -1,9 +1,6 @@
 import json
 import octoprint_client
 
-from subprocess import check_output
-ip_addresses = check_output(['hostname', '--all-ip-addresses']).split()
-
 def listen_to_octoprint(settings, q):
     def on_connect(ws):
         print(">>> Connected!")
@@ -15,6 +12,8 @@ def listen_to_octoprint(settings, q):
         print("!!! Error: {}".format(error))
 
     def on_heartbeat(ws):
+        from subprocess import check_output
+        ip_addresses = check_output(['hostname', '--all-ip-addresses']).split()
         q.put(json.dumps({'hb': {'ipAddrs': ip_addresses}}))
 
     def on_message(ws, message_type, message_payload):
