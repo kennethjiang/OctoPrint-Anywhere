@@ -1,16 +1,7 @@
 # coding=utf-8
 from __future__ import absolute_import
 
-### (Don't forget to remove me)
-# This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
-# as well as the plugin mixins it's subclassing from. This is really just a basic skeleton to get you started,
-# defining your plugin as a template plugin, settings and asset plugin. Feel free to add or remove mixins
-# as necessary.
-#
-# Take a look at the documentation on what other plugin mixins are available.
-
 import octoprint.plugin
-import yaml
 import json
 
 import logging
@@ -24,6 +15,7 @@ from ratelimit import rate_limited
 from .mjpeg_stream import capture_mjpeg
 from .octoprint_ws import listen_to_octoprint
 from .server_ws import ServerSocket
+from .config import Config
 
 class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.AssetPlugin,
@@ -42,7 +34,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     ##########
 
     def is_wizard_required(self):
-        self.__load_config__()
+        self.config = Config(self).load_config()
         return not self.config['registered']
 
     def get_wizard_version(self):
@@ -76,14 +68,13 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         return [ dict(type="settings", template="anywhere_settings.jinja2", custom_bindings=True) ]
 
     def get_template_vars(self):
-        self.__load_config__()
+        self.config = Config(self).load_config()
         return self.config
 
     def on_after_startup(self):
         self._logger = logging.getLogger(__name__)
 
         self.message_q = Queue(maxsize=128)
-        self.webcam_q = Queue(maxsize=1)
 
         main_thread = threading.Thread(target=self.__message_loop__)
         main_thread.daemon = True
@@ -94,71 +85,32 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         # listen to OctoPrint websocket in another thread
         listen_to_octoprint(self._settings.settings, self.message_q)
 
-
-    def __load_config__(self):
-        CONFIG_PATH = self.get_plugin_data_folder() + "/.config.yaml"
-        old_config_path = self._basefolder + "/.config.yaml"
-        import os.path
-        if os.path.isfile(old_config_path):
-            try:
-                import shutil
-                shutil.move(old_config_path, CONFIG_PATH)
-            except Exception as ex:
-                self._logger.exception(ex)
-
-        try:
-            with open(CONFIG_PATH, 'r') as stream:
-                self.config = yaml.load(stream)
-        except IOError:
-            import random
-            import string
-            # If config file not found, create a new random string as token
-            token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))
-
-            with open(CONFIG_PATH, 'w') as outfile:
-                c = dict(
-                        token=token,
-                        registered=False,
-                        ws_host="ws://getanywhere.herokuapp.com",
-                        api_host="https://www.getanywhere.io"
-                        )
-                yaml.dump(c, outfile, default_flow_style=False)
-                self.config = c
-
-    def __save_config__(self):
-        CONFIG_PATH= self.get_plugin_data_folder() + "/.config.yaml"
-        with open(CONFIG_PATH, 'w') as outfile:
-            yaml.dump(self.config, outfile, default_flow_style=False)
-
     @backoff.on_exception(backoff.expo, Exception, max_value=240)
     @backoff.on_predicate(backoff.expo, max_value=240)
     def __message_loop__(self):
 
         @backoff.on_exception(backoff.fibo, Exception, max_tries=8)
         @backoff.on_predicate(backoff.fibo, max_tries=8)
-        def __forward_ws__(ss, message_q, webcam_q):
+        def __forward_ws__(ss, message_q):
 
             @rate_limited(period=1, every=4.0)
-            def __exhaust_message_queues__(ss, message_q, webcam_q):
+            def __exhaust_message_queues__(ss, message_q):
                 while not message_q.empty():
                     ss.send_text(message_q.get_nowait())
 
-                if not webcam_q.empty():
-                    ss.send_binary(webcam_q.get_nowait())
-
             while ss.connected():
-                __exhaust_message_queues__(ss, message_q, webcam_q)
+                __exhaust_message_queues__(ss, message_q)
             self._logger.warn("Not connected to server ws or connection lost")
 
-        self.__load_config__()
+        self.config = Config(self).load_config()
 
         if (not self.config['registered']):
             self.__probe_auth_token__()  # Forever loop to probe if token is registered with server
             self.config['registered'] = True
-            self.__save_config__()
+            Config(self).save_config(self.config)
 
         self.__connect_server_ws__()
-        __forward_ws__(self.ss, self.message_q, self.webcam_q)
+        __forward_ws__(self.ss, self.message_q)
         self._logger.warn("Reached max backoff in waiting for server ws connection")
         try:
             self.ss.close()
@@ -200,9 +152,10 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         self.webcam = self._settings.global_get(["webcam"])
 
         if self.webcam:
-            producer = threading.Thread(target=capture_mjpeg, args=(self.webcam_q, self.webcam["stream"]))
+            producer = threading.Thread(target=capture_mjpeg, args=(Config(self), self.webcam["stream"]))
             producer.daemon = True
             producer.start()
+
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that

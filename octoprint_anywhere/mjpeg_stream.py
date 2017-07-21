@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 from Queue import Queue
 from threading import Thread
+import logging
 import StringIO
 import re
 import urllib2
@@ -9,11 +10,38 @@ from urlparse import urlparse
 import backoff
 from contextlib import closing
 
+@backoff.on_exception(backoff.expo, Exception, max_value=10)
+@backoff.on_predicate(backoff.fibo, max_value=10)
+def stream_up(q, cfg):
+    class UpStream:
+        def __init__(self, q):
+             self.q = q
+
+        def __iter__(self):
+            return self
+
+        def next(self):
+             return self.q.get()
+
+    stream = UpStream(q)
+    import requests
+    res = requests.post(cfg['api_host'] + "/app/video", data=stream, stream=True, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
+
+
 @backoff.on_exception(backoff.expo, Exception)
 @backoff.on_predicate(backoff.fibo)
-def capture_mjpeg(q, stream_url):
+def capture_mjpeg(config, stream_url):
     if not urlparse(stream_url).scheme:
         stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
+
+    if not config.load_config()['registered']:
+        return
+
+    q = Queue(maxsize=1)
+
+    upstream_thread = Thread(target=stream_up, args=(q,config.load_config()))
+    upstream_thread.daemon = True
+    upstream_thread.start()
 
     while True:
         with closing(urllib2.urlopen(stream_url)) as res:
@@ -22,6 +50,7 @@ def capture_mjpeg(q, stream_url):
             data = res.readline()
             while not chunker.addLine(data):
                 data = res.readline()
+
 
 class MjpegStreamChunker:
 
@@ -57,6 +86,6 @@ if __name__ == "__main__":
             last_chunk = q.get()
             f.write(last_chunk)
             import time
-            time.sleep(1)
+            time.sleep(0.1)
             f.flush()
 
