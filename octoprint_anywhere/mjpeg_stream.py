@@ -22,11 +22,8 @@ def stream_up(q, cfg):
             return self
 
         def next(self):
-            last_chunk = self.q.get()
-            while not self.q.empty():
-                last_chunk = self.q.get()
-
-            return last_chunk
+            print("new jpeg")
+            return self.q.get()
 
     stream = UpStream(q)
     res = requests.post(cfg['api_host'] + "/app/video", data=stream, stream=True, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
@@ -41,16 +38,16 @@ def capture_mjpeg(config, stream_url):
     if not config.load_config()['registered']:
         return
 
-    q = Queue(maxsize=16)
+    q = Queue(maxsize=1)
 
     upstream_thread = Thread(target=stream_up, args=(q,config.load_config()))
     upstream_thread.daemon = True
     upstream_thread.start()
 
-    with closing(urllib2.urlopen(stream_url)) as res:
-        chunker = MjpegStreamChunker(q)
+    while True:
+        with closing(urllib2.urlopen(stream_url)) as res:
+            chunker = MjpegStreamChunker(q)
 
-        while True:
             data = res.readline()
             while not chunker.addLine(data):
                 data = res.readline()
