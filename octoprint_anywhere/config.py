@@ -38,6 +38,6 @@ class Config:
                 yaml.dump(c, outfile, default_flow_style=False)
                 return c
 
-    def __save_config__(self, config):
+    def save_config(self, config):
         with open(self.config_path, 'w') as outfile:
             yaml.dump(config, outfile, default_flow_style=False)

@@ -9,6 +9,7 @@ import urllib2
 from urlparse import urlparse
 import backoff
 from contextlib import closing
+import requests
 
 @backoff.on_exception(backoff.expo, Exception, max_value=10)
 @backoff.on_predicate(backoff.fibo, max_value=10)
@@ -21,10 +22,10 @@ def stream_up(q, cfg):
             return self
 
         def next(self):
-             return self.q.get()
+            print("new jpeg")
+            return self.q.get()
 
     stream = UpStream(q)
-    import requests
     res = requests.post(cfg['api_host'] + "/app/video", data=stream, stream=True, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
 
 
