@@ -78,15 +78,14 @@ class MjpegStreamChunker:
 
 
 if __name__ == "__main__":
-    q = Queue()
-    producer = Thread(target=capture_mjpeg, args=(q,"http://192.168.134.30:8080/?action=stream"))
-    producer.daemon = True
-    producer.start()
-    with open("/tmp/test.out", 'w') as f:
-        while True:
-            last_chunk = q.get()
-            f.write(last_chunk)
-            import time
-            time.sleep(0.1)
-            f.flush()
+    class ConfigStub:
+        def __init__(self, path):
+            self.p = path
 
+        def load_config(self):
+            import yaml
+            with open(self.p, 'r') as stream:
+                return yaml.load(stream)
+
+    import sys
+    capture_mjpeg(ConfigStub(sys.argv[1]), "http://192.168.134.30:8080/?action=stream")
