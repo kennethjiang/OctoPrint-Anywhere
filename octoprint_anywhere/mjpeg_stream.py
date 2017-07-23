@@ -23,7 +23,6 @@ def stream_up(q, cfg):
 
         @rate_limited(period=5, every=1.0)
         def next(self):
-            print("new jpeg")
             return self.q.get()
 
     stream = UpStream(q)
