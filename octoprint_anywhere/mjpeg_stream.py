@@ -21,6 +21,7 @@ def stream_up(q, cfg):
         def __iter__(self):
             return self
 
+        @rate_limited(period=5, every=1.0)
         def next(self):
             print("new jpeg")
             return self.q.get()
