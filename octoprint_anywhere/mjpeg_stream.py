@@ -10,6 +10,7 @@ from urlparse import urlparse
 import backoff
 from contextlib import closing
 import requests
+from ratelimit import rate_limited
 
 @backoff.on_exception(backoff.expo, Exception, max_value=10)
 @backoff.on_predicate(backoff.fibo, max_value=10)
