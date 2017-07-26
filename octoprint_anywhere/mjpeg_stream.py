@@ -12,6 +12,8 @@ from contextlib import closing
 import requests
 from ratelimit import rate_limited
 
+_logger = logging.getLogger(__name__)
+
 @backoff.on_exception(backoff.expo, Exception, max_value=10)
 @backoff.on_predicate(backoff.fibo, max_value=10)
 def stream_up(q, cfg):
@@ -34,9 +36,9 @@ def stream_up(q, cfg):
     while True:
         stream = UpStream(q)
         try:
-            res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}, timeout=(5, 0.1)).raise_for_status()
-        except requests.ConnectionError:
-            pass
+            res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}, timeout=(3.0, 0.1)).raise_for_status()
+        except Exception as e:
+            _logger.warn("Exception possibly caused by intended timeout to reset connection: " + str(e))
 
 
 @backoff.on_exception(backoff.expo, Exception)
