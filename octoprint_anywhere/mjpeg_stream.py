@@ -18,16 +18,25 @@ def stream_up(q, cfg):
     class UpStream:
         def __init__(self, q):
              self.q = q
+             self.cnt = 0
 
         def __iter__(self):
             return self
 
         @rate_limited(period=5, every=1.0)
         def next(self):
-            return self.q.get()
+            self.cnt = self.cnt + 1;
+            if self.cnt < 500:
+                return self.q.get()
+            else:
+                raise StopIteration()
 
-    stream = UpStream(q)
-    res = requests.post(cfg['api_host'] + "/app/video", data=stream, stream=True, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
+    while True:
+        stream = UpStream(q)
+        try:
+            res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}, timeout=(5, 0.1)).raise_for_status()
+        except requests.ConnectionError:
+            pass
 
 
 @backoff.on_exception(backoff.expo, Exception)
