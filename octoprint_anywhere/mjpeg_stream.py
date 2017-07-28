@@ -14,8 +14,8 @@ from ratelimit import rate_limited
 
 _logger = logging.getLogger(__name__)
 
-@backoff.on_exception(backoff.expo, Exception, max_value=10)
-@backoff.on_predicate(backoff.fibo, max_value=10)
+@backoff.on_exception(backoff.expo, Exception, max_value=60)
+@backoff.on_predicate(backoff.fibo, max_value=60)
 def stream_up(q, cfg):
     class UpStream:
         def __init__(self, q):
@@ -28,17 +28,14 @@ def stream_up(q, cfg):
         @rate_limited(period=5, every=1.0)
         def next(self):
             self.cnt = self.cnt + 1;
-            if self.cnt < 500:
+            if self.cnt < 120:
                 return self.q.get()
             else:
                 raise StopIteration()
 
     while True:
         stream = UpStream(q)
-        try:
-            res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}, timeout=(3.0, 0.1)).raise_for_status()
-        except Exception as e:
-            _logger.warn("Exception possibly caused by intended timeout to reset connection: " + str(e))
+        res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
 
 
 @backoff.on_exception(backoff.expo, Exception)
@@ -99,5 +96,7 @@ if __name__ == "__main__":
             with open(self.p, 'r') as stream:
                 return yaml.load(stream)
 
+    import logging
+    logging.basicConfig()
     import sys
     capture_mjpeg(ConfigStub(sys.argv[1]), "http://192.168.134.30:8080/?action=stream")
