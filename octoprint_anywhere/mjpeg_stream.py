@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import absolute_import
 from Queue import Queue
+from Queue import Empty
 from threading import Thread
 import logging
 import StringIO
@@ -29,29 +30,22 @@ def stream_up(q, cfg):
         def next(self):
             self.cnt = self.cnt + 1;
             if self.cnt < 120:
-                return self.q.get()
+                try:
+                    return self.q.get(True, timeout=3.0)
+                except Empty:
+                    raise StopIteration()
             else:
-                raise StopIteration()
+                raise StopIteration()  # End connection so that `requests.post` can process server response
 
-    while True:
-        stream = UpStream(q)
-        res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
+    stream = UpStream(q)
+    res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
 
 
 @backoff.on_exception(backoff.expo, Exception)
 @backoff.on_predicate(backoff.fibo)
-def capture_mjpeg(config, stream_url):
+def capture_mjpeg(stream_url, q):
     if not urlparse(stream_url).scheme:
         stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
-
-    if not config.load_config()['registered']:
-        return
-
-    q = Queue(maxsize=1)
-
-    upstream_thread = Thread(target=stream_up, args=(q,config.load_config()))
-    upstream_thread.daemon = True
-    upstream_thread.start()
 
     while True:
         with closing(urllib2.urlopen(stream_url)) as res:
@@ -98,5 +92,16 @@ if __name__ == "__main__":
 
     import logging
     logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
+    req_log = logging.getLogger('requests.packages.urllib3')
+    req_log.setLevel(logging.DEBUG)
+    req_log.propagate = True
     import sys
-    capture_mjpeg(ConfigStub(sys.argv[1]), "http://192.168.134.30:8080/?action=stream")
+
+    q = Queue(maxsize=1)
+
+    upstream_thread = Thread(target=stream_up, args=(q,ConfigStub(sys.argv[1]).load_config()))
+    upstream_thread.daemon = True
+    upstream_thread.start()
+
+    capture_mjpeg("http://192.168.134.30:8080/?action=stream", q)

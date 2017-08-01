@@ -12,7 +12,7 @@ import backoff
 import requests
 from ratelimit import rate_limited
 
-from .mjpeg_stream import capture_mjpeg
+from .mjpeg_stream import capture_mjpeg, stream_up
 from .octoprint_ws import listen_to_octoprint
 from .server_ws import ServerSocket
 from .config import Config
@@ -149,10 +149,16 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         requests.get(self.config['api_host'] + "/api/ping", headers={"Authorization": "Bearer " + self.config['token']}).raise_for_status()
 
     def __start_mjpeg_capture__(self):
+        q = Queue(maxsize=1)
+
+        upstream_thread = threading.Thread(target=stream_up, args=(q,Config(self).load_config()))
+        upstream_thread.daemon = True
+        upstream_thread.start()
+
         self.webcam = self._settings.global_get(["webcam"])
 
         if self.webcam:
-            producer = threading.Thread(target=capture_mjpeg, args=(Config(self), self.webcam["stream"]))
+            producer = threading.Thread(target=capture_mjpeg, args=(self.webcam["stream"], q))
             producer.daemon = True
             producer.start()
 
