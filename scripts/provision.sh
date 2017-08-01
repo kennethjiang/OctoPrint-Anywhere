@@ -38,5 +38,6 @@ sudo pip install -r requirements.txt
 sudo python setup.py install
 
 cd /vagrant
+mkir -f data
 sudo python setup.py develop
-if [ ! -f data/config.yaml ]; then cp octoprint-config.yaml data/; fi
+if [ ! -f data/config.yaml ]; then cp octoprint-config.yaml data/config.yaml; fi
