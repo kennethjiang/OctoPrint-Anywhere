@@ -31,14 +31,15 @@ def stream_up(q, cfg):
             self.cnt = self.cnt + 1;
             if self.cnt < 120:
                 try:
-                    return self.q.get(True, timeout=3.0)
+                    return self.q.get(True, timeout=15.0)
                 except Empty:
                     raise StopIteration()
             else:
                 raise StopIteration()  # End connection so that `requests.post` can process server response
 
-    stream = UpStream(q)
-    res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
+    while True:
+        stream = UpStream(q)
+        res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
 
 
 @backoff.on_exception(backoff.expo, Exception)
