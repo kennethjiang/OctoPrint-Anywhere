@@ -75,15 +75,34 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         self._logger = logging.getLogger(__name__)
 
         self.message_q = Queue(maxsize=128)
+        self.webcam_q  = Queue(maxsize=1)
 
-        main_thread = threading.Thread(target=self.__message_loop__)
+        main_thread = threading.Thread(target=self.__start_server_connections__)
         main_thread.daemon = True
         main_thread.start()
 
+        # Thread to capture mjpeg from mjpeg_streamer
         self.__start_mjpeg_capture__()
 
-        # listen to OctoPrint websocket in another thread
+        # listen to OctoPrint websocket. It's in another thread, which is implemented by OctoPrint code
         listen_to_octoprint(self._settings.settings, self.message_q)
+
+    def __start_server_connections__(self):
+        self.config = Config(self).load_config()
+
+        # Forever loop to block other server calls if token is registered with server
+        if (not self.config['registered']):
+            self.__probe_auth_token__()
+            self.config['registered'] = True
+            Config(self).save_config(self.config)
+
+        ws_thread = threading.Thread(target=self.__message_loop__)
+        ws_thread.daemon = True
+        ws_thread.start()
+
+        upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q,Config(self).load_config()))
+        upstream_thread.daemon = True
+        upstream_thread.start()
 
     @backoff.on_exception(backoff.expo, Exception, max_value=240)
     @backoff.on_predicate(backoff.expo, max_value=240)
@@ -101,13 +120,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             while ss.connected():
                 __exhaust_message_queues__(ss, message_q)
             self._logger.warn("Not connected to server ws or connection lost")
-
-        self.config = Config(self).load_config()
-
-        if (not self.config['registered']):
-            self.__probe_auth_token__()  # Forever loop to probe if token is registered with server
-            self.config['registered'] = True
-            Config(self).save_config(self.config)
 
         self.__connect_server_ws__()
         __forward_ws__(self.ss, self.message_q)
@@ -149,16 +161,10 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         requests.get(self.config['api_host'] + "/api/ping", headers={"Authorization": "Bearer " + self.config['token']}).raise_for_status()
 
     def __start_mjpeg_capture__(self):
-        q = Queue(maxsize=1)
-
-        upstream_thread = threading.Thread(target=stream_up, args=(q,Config(self).load_config()))
-        upstream_thread.daemon = True
-        upstream_thread.start()
-
         self.webcam = self._settings.global_get(["webcam"])
 
         if self.webcam:
-            producer = threading.Thread(target=capture_mjpeg, args=(self.webcam["stream"], q))
+            producer = threading.Thread(target=capture_mjpeg, args=(self.webcam["stream"], self.webcam_q))
             producer.daemon = True
             producer.start()
 

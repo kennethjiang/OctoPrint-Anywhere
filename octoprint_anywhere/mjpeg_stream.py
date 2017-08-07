@@ -26,7 +26,7 @@ def stream_up(q, cfg):
         def __iter__(self):
             return self
 
-        @rate_limited(period=1, every=2.0)
+        @rate_limited(period=1, every=1.0)
         def next(self):
             self.cnt = self.cnt + 1;
             if self.cnt < 120:
