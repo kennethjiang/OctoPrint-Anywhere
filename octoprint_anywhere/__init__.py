@@ -164,7 +164,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         self.webcam = self._settings.global_get(["webcam"])
 
         if self.webcam:
-            producer = threading.Thread(target=capture_mjpeg, args=(self.webcam, self.webcam_q))
+            producer = threading.Thread(target=capture_mjpeg, args=(self.webcam["stream"], self.webcam_q))
             producer.daemon = True
             producer.start()
 
