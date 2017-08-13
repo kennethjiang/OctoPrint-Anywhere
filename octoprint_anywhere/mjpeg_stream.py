@@ -15,21 +15,25 @@ from ratelimit import rate_limited
 
 _logger = logging.getLogger(__name__)
 
+@rate_limited(period=1, every=1.0)
+def post_snapshot(url, data, headers):
+    #files = {'file': ('snapshot.jpg', data)}
+    #requests.post(url, files=files, headers=headers).raise_for_status()
+    requests.post(url, data=data, headers=headers).raise_for_status()
+
 @backoff.on_exception(backoff.expo, Exception, max_value=60)
 @backoff.on_predicate(backoff.fibo, max_value=60)
 def stream_up(q, cfg):
     class UpStream:
         def __init__(self, q):
              self.q = q
-             self.cnt = 0
 
         def __iter__(self):
             return self
 
-        @rate_limited(period=1, every=1.0)
+        @rate_limited(period=1, every=2.0)
         def next(self):
-            self.cnt = self.cnt + 1;
-            if self.cnt < 120:
+            if True:
                 try:
                     return self.q.get(True, timeout=15.0)
                 except Empty:
@@ -38,23 +42,39 @@ def stream_up(q, cfg):
                 raise StopIteration()  # End connection so that `requests.post` can process server response
 
     while True:
-        stream = UpStream(q)
-        res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
+        data = q.get()
+        if data[:2] == '\xff\xd8':
+            post_snapshot(cfg['api_host'] + "/app/snapshot", data=data, headers={"Authorization": "Bearer " + cfg['token'], 'Content-Type': 'application/octet-stream'})
+        else:
+            q.put(data)
+            stream = UpStream(q)
+            res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
 
 
 @backoff.on_exception(backoff.expo, Exception)
 @backoff.on_predicate(backoff.fibo)
-def capture_mjpeg(stream_url, q):
-    if not urlparse(stream_url).scheme:
-        stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
+def capture_mjpeg(settings, q):
+    snapshot_url = settings["snapshot"]
+    if snapshot_url:
+        if not urlparse(snapshot_url).scheme:
+            snapshot_url = "http://localhost/" + re.sub(r"^\/", "", snapshot_url)
 
-    while True:
-        with closing(urllib2.urlopen(stream_url)) as res:
-            chunker = MjpegStreamChunker(q)
+        while True:
+            with closing(urllib2.urlopen(snapshot_url)) as res:
+                q.put(res.read())
 
-            data = res.readline()
-            while not chunker.addLine(data):
+    else:
+        stream_url = settings["stream"]
+        if not urlparse(stream_url).scheme:
+            stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
+
+        while True:
+            with closing(urllib2.urlopen(stream_url)) as res:
+                chunker = MjpegStreamChunker(q)
+
                 data = res.readline()
+                while not chunker.addLine(data):
+                    data = res.readline()
 
 
 class MjpegStreamChunker:
