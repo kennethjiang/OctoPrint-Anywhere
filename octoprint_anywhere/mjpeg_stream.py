@@ -29,7 +29,7 @@ def stream_up(q, cfg):
         @rate_limited(period=1, every=1.0)
         def next(self):
             self.cnt = self.cnt + 1;
-            if self.cnt < 120:
+            if self.cnt < 60:
                 try:
                     return self.q.get(True, timeout=15.0)
                 except Empty:
@@ -44,17 +44,30 @@ def stream_up(q, cfg):
 
 @backoff.on_exception(backoff.expo, Exception)
 @backoff.on_predicate(backoff.fibo)
-def capture_mjpeg(stream_url, q):
-    if not urlparse(stream_url).scheme:
-        stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
+def capture_mjpeg(settings, q):
+    snapshot_url = settings["snapshot"]
+    if snapshot_url:
+        if not urlparse(snapshot_url).scheme:
+            snapshot_url = "http://localhost/" + re.sub(r"^\/", "", snapshot_url)
 
-    while True:
-        with closing(urllib2.urlopen(stream_url)) as res:
-            chunker = MjpegStreamChunker(q)
+        while True:
+            with closing(urllib2.urlopen(snapshot_url)) as res:
+                jpg = res.read()
+                data = "--boundarydonotcross\r\nContent-Type: image/jpeg\r\nContent-Length: {0}\r\n\r\n{1}\r\n".format(len(jpg), jpg)
+                q.put(data)
 
-            data = res.readline()
-            while not chunker.addLine(data):
+    else:
+        stream_url = settings["stream"]
+        if not urlparse(stream_url).scheme:
+            stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
+
+        while True:
+            with closing(urllib2.urlopen(stream_url)) as res:
+                chunker = MjpegStreamChunker(q)
+
                 data = res.readline()
+                while not chunker.addLine(data):
+                    data = res.readline()
 
 
 class MjpegStreamChunker:
