@@ -38,7 +38,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         return not self.config['registered']
 
     def get_wizard_version(self):
-        return 2
+        return 3
         # Wizard version numbers used in releases
         # < 1.4.2 : no wizard
         # 1.4.2 : 1
