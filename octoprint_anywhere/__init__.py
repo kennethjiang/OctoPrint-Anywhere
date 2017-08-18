@@ -35,7 +35,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     ##########
 
     def is_wizard_required(self):
-        return not self.config['registered']
+        return not self._settings.get_boolean(['registered'])
 
     def get_wizard_version(self):
         return 3
@@ -65,6 +65,40 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}".format(self.config['api_host'], self.config['token']))
 
 
+    ################
+    ### Settings
+    ################
+
+    def get_settings_defaults(self):
+        return dict(
+            token = '',
+            registered = False,
+            ws_host="ws://getanywhere.herokuapp.com",
+            api_host="https://www.getanywhere.io"
+            )
+
+    def get_template_configs(self):
+        return [ dict(type="settings", custom_bindings=False) ]
+
+    def get_settings_version(self):
+        return 1;
+
+    def __ensure_settings__(self):
+        if not self._settings.get(['token']):
+            cfg = Config(self).load_config()
+            if not cfg:
+                import random
+                import string
+                # If config file not found, create a new random string as token
+                token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))
+                cfg = dict(
+                        token=token,
+                        registered=False,
+                        )
+            self._settings.set(['token'], cfg['token'])
+            self._settings.set_boolean(['registered'], cfg['registered'])
+
+
     def get_update_information(self):
         # Define the configuration for your plugin to use with the Software Update
         # Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
@@ -85,19 +119,14 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             )
         )
 
-    def get_template_configs(self):
-        return [ dict(type="settings", template="anywhere_settings.jinja2", custom_bindings=True) ]
-
-    def get_template_vars(self):
-        return self.config
-
     def on_after_startup(self):
         self._logger = logging.getLogger(__name__)
-        self.config = Config(self)
+        self.__ensure_settings__()
 
         self.message_q = Queue(maxsize=128)
         self.webcam_q  = Queue(maxsize=1)
 
+        return
         main_thread = threading.Thread(target=self.__start_server_connections__)
         main_thread.daemon = True
         main_thread.start()
@@ -110,15 +139,15 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def __start_server_connections__(self):
         # Forever loop to block other server calls if token is registered with server
-        if (not self.config['registered']):
+        if (not self._settings.get(['registered'])):
             self.__probe_auth_token__()
-            self.config['registered'] = True
+            self._settings['registered'] = True
 
         ws_thread = threading.Thread(target=self.__message_loop__)
         ws_thread.daemon = True
         ws_thread.start()
 
-        upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q,self.config))
+        upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q,self._settings))
         upstream_thread.daemon = True
         upstream_thread.start()
 

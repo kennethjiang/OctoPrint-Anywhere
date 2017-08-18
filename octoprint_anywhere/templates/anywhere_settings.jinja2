@@ -1,12 +1,10 @@
-{% if plugin_anywhere_registered %}
-<h3>Hurrah! 3D printer already registered. Nothing to do here.</h3>
-<p><a href="https://www.getanywhere.io/app/devices#">Go to OctoPrint Anywhere dashboard.</a></p>
-
-<div>
+<div data-bind="if: settings.plugins.anywhere.registered">
+    <h3>Hurrah! 3D printer already registered. Nothing to do here.</h3>
+    <p><a href="https://www.getanywhere.io/app/devices#">Go to OctoPrint Anywhere dashboard.</a></p>
     <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Not seeing your 3D printer in getanywhere.io?</a></small></div>
     <div class="hide">
-        <a class="btn btn-primary" href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Re-register</a>
-        <p>If the button doesn't work, open a new browser window and copy this link to the address bar: <code>{{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}}</code></p>
+        <a class="btn btn-primary" href="#" data-bind="attr: {href: settings.plugins.anywhere.api_host() + '/pub/link_printer?token=' + settings.plugins.anywhere.token()}" target="blank">Re-register</a>
+        <p>If the button doesn't work, open a new browser window and copy this link to the address bar: <code data-bind="text: settings.plugins.anywhere.api_host() + '/pub/link_printer?token=' + settings.plugins.anywhere.token()"></code></p>
         <div>If you
             <ul>
                 <li>tried to re-register and it didn't work, or</li>
@@ -17,20 +15,18 @@
         <p>If it still does not work, please <a href="https://github.com/kennethjiang/OctoPrint-Anywhere/issues/new">report a bug</a>.</p>
     </div>
 </div>
-{% else %}
-<a class="btn btn-primary" a href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Register my 3D printer on getanywhere.io</a>
 
-<div>
+<div data-bind="if: !settings.plugins.anywhere.registered">
+    <a class="btn btn-primary" href="#" data-bind="attr: {href: settings.plugins.anywhere.api_host() + '/pub/link_printer?token=' + settings.plugins.anywhere.token()}" target="blank">Register my 3D printer on getanywhere.io</a>
     <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Having difficulties registering?</a></small></div>
     <div class="hide">
       <ul>
         <li>Make sure your browser, as well as Raspberry Pi, are both connected to internet.</li>
-        <li>Open a new browser window and copy this link to the address bar: <code>{{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}}</code></li>
+        <li>Open a new browser window and copy this link to the address bar: <code data-bind="text: settings.plugins.anywhere.api_host() + '/pub/link_printer?token=' + settings.plugins.anywhere.token()"></code></liv>
         <li>If it still does not work, please <a href="https://github.com/kennethjiang/OctoPrint-Anywhere/issues/new">report a bug</a>.</li>
       </ul>
     </div>
 </div>
-{% endif %}
 
 <h3>About OctoPrint Anywhere</h3>
 <p>OctoPrint Anywhere extends your control beyond the local network. Check the video below for a quick overview.</p>
