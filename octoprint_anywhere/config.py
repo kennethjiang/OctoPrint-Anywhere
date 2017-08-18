@@ -3,12 +3,23 @@ from __future__ import absolute_import
 import logging
 import yaml
 
-class Config:
+class Config(dict):
 
     def __init__(self, plugin):
         self.config_path = plugin.get_plugin_data_folder() + "/.config.yaml"
         self.old_config_path = plugin._basefolder + "/.config.yaml"
         self._logger = logging.getLogger(__name__)
+        self.load_config()
+
+    def __getitem__(self, key):
+        return self.__dict__[key]
+
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
+        self.save_config()
+
+    def values(self):
+        return self.__dict__
 
     def load_config(self):
         import os.path
@@ -21,23 +32,25 @@ class Config:
 
         try:
             with open(self.config_path, 'r') as stream:
-                return yaml.load(stream)
+                self.__dict__ = yaml.load(stream)
         except IOError:
-            import random
-            import string
-            # If config file not found, create a new random string as token
-            token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))
+            self.reset_config()
 
-            with open(self.config_path, 'w') as outfile:
-                c = dict(
-                        token=token,
-                        registered=False,
-                        ws_host="ws://getanywhere.herokuapp.com",
-                        api_host="https://www.getanywhere.io"
-                        )
-                yaml.dump(c, outfile, default_flow_style=False)
-                return c
-
-    def save_config(self, config):
+    def save_config(self):
         with open(self.config_path, 'w') as outfile:
-            yaml.dump(config, outfile, default_flow_style=False)
+            yaml.dump(self.__dict__, outfile, default_flow_style=False)
+
+    def reset_config(self):
+        import random
+        import string
+        # If config file not found, create a new random string as token
+        token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))
+
+        with open(self.config_path, 'w') as outfile:
+            self.__dict__ = dict(
+                    token=token,
+                    registered=False,
+                    ws_host="ws://getanywhere.herokuapp.com",
+                    api_host="https://www.getanywhere.io"
+                    )
+            yaml.dump(self.__dict__, outfile, default_flow_style=False)

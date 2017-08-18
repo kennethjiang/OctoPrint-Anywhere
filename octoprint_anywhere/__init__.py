@@ -21,6 +21,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.AssetPlugin,
                      octoprint.plugin.TemplatePlugin,
                      octoprint.plugin.StartupPlugin,
+                     octoprint.plugin.SimpleApiPlugin,
                      octoprint.plugin.WizardPlugin,):
 
     ##~~ AssetPlugin mixin
@@ -30,11 +31,10 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 )
 
     ##########
-    ### Wizard API
+    ### Wizard
     ##########
 
     def is_wizard_required(self):
-        self.config = Config(self).load_config()
         return not self.config['registered']
 
     def get_wizard_version(self):
@@ -43,6 +43,27 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         # < 1.4.2 : no wizard
         # 1.4.2 : 1
         # 1.4.3 : 1
+
+
+    ################
+    ### Plugin APIs
+    ################
+
+    def get_api_commands(self):
+        return dict(
+            reset_config=[],
+        )
+
+    def is_api_adminonly(self):
+        return True
+
+    def on_api_command(self, command, data):
+        import flask
+        if command == "reset_config":
+            self.config.reset_config()
+            self.ss.terminate()   # Server WS connection needs to be reset to pick up new token
+            return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}".format(self.config['api_host'], self.config['token']))
+
 
     def get_update_information(self):
         # Define the configuration for your plugin to use with the Software Update
@@ -68,11 +89,11 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         return [ dict(type="settings", template="anywhere_settings.jinja2", custom_bindings=True) ]
 
     def get_template_vars(self):
-        self.config = Config(self).load_config()
         return self.config
 
     def on_after_startup(self):
         self._logger = logging.getLogger(__name__)
+        self.config = Config(self)
 
         self.message_q = Queue(maxsize=128)
         self.webcam_q  = Queue(maxsize=1)
@@ -88,19 +109,16 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         listen_to_octoprint(self._settings.settings, self.message_q)
 
     def __start_server_connections__(self):
-        self.config = Config(self).load_config()
-
         # Forever loop to block other server calls if token is registered with server
         if (not self.config['registered']):
             self.__probe_auth_token__()
             self.config['registered'] = True
-            Config(self).save_config(self.config)
 
         ws_thread = threading.Thread(target=self.__message_loop__)
         ws_thread.daemon = True
         ws_thread.start()
 
-        upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q,Config(self).load_config()))
+        upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q,self.config))
         upstream_thread.daemon = True
         upstream_thread.start()
 

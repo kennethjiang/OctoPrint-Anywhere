@@ -5,8 +5,15 @@
 <div>
     <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Not seeing your 3D printer in getanywhere.io?</a></small></div>
     <div class="hide">
-        <a class="btn btn-primary" a href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Re-register</a>
+        <a class="btn btn-primary" href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Re-register</a>
         <p>If the button doesn't work, open a new browser window and copy this link to the address bar: <code>{{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}}</code></p>
+        <div>If you
+            <ul>
+                <li>tried to re-register and it didn't work, or</li>
+                <li>copied the OctoPi image from another SD card (as opposed to using original OctoPi image),</li>
+            </ul>
+            <a class="btn btn-primary" id="reset-re-register">Reset and Re-register</a>
+        </div>
         <p>If it still does not work, please <a href="https://github.com/kennethjiang/OctoPrint-Anywhere/issues/new">report a bug</a>.</p>
     </div>
 </div>

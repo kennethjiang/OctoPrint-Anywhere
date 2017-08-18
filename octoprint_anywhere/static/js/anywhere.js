@@ -8,8 +8,15 @@
 'use strict';
 
 function AnywhereViewModel(parameters) {
-    //debugger;
+    self.settingsViewModel = parameters[2];
 
+    $("#reset-re-register").click(function(event) {
+        $.ajax('/api/plugin/anywhere', {
+            method: "POST",
+            contentType: 'application/json',
+            data: JSON.stringify({ command: 'reset_config' })
+        });
+    });
 }
 
 
@@ -18,8 +25,8 @@ OCTOPRINT_VIEWMODELS.push([
     AnywhereViewModel,
 
     // e.g. loginStateViewModel, settingsViewModel, ...
-    [ "printerStateViewModel", "printerProfilesViewModel" ],
+    [ "printerStateViewModel", "printerProfilesViewModel", "settingsViewModel" ],
 
     // e.g. #settings_plugin_slicer, #tab_plugin_slicer, ...
-    [ "#settings_anywhere" ]
+    [ "#plugin_anywhere" ]
 ]);
