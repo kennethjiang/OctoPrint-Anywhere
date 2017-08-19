@@ -1,4 +1,5 @@
-<div data-bind="if: settings.plugins.anywhere.registered">
+<input data-bind="blah: console.log($data)" />
+<div data-bind="visible: settings.plugins.anywhere.registered() === 'Yes'">
     <h3>Hurrah! 3D printer already registered. Nothing to do here.</h3>
     <p><a href="https://www.getanywhere.io/app/devices#">Go to OctoPrint Anywhere dashboard.</a></p>
     <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Not seeing your 3D printer in getanywhere.io?</a></small></div>
@@ -16,7 +17,7 @@
     </div>
 </div>
 
-<div data-bind="if: !settings.plugins.anywhere.registered">
+<div data-bind="visible: settings.plugins.anywhere.registered() !== 'Yes'">
     <a class="btn btn-primary" href="#" data-bind="attr: {href: settings.plugins.anywhere.api_host() + '/pub/link_printer?token=' + settings.plugins.anywhere.token()}" target="blank">Register my 3D printer on getanywhere.io</a>
     <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Having difficulties registering?</a></small></div>
     <div class="hide">

@@ -35,7 +35,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     ##########
 
     def is_wizard_required(self):
-        return not self._settings.get_boolean(['registered'])
+        return not self._settings.get(['registered'])
 
     def get_wizard_version(self):
         return 3
@@ -72,7 +72,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     def get_settings_defaults(self):
         return dict(
             token = '',
-            registered = False,
+            registered = '',
             ws_host="ws://getanywhere.herokuapp.com",
             api_host="https://www.getanywhere.io"
             )
@@ -96,7 +96,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                         registered=False,
                         )
             self._settings.set(['token'], cfg['token'])
-            self._settings.set_boolean(['registered'], cfg['registered'])
+            self._settings.set(['registered'], 'Yes' if cfg['registered'] else '')
 
 
     def get_update_information(self):
@@ -126,7 +126,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         self.message_q = Queue(maxsize=128)
         self.webcam_q  = Queue(maxsize=1)
 
-        return
         main_thread = threading.Thread(target=self.__start_server_connections__)
         main_thread.daemon = True
         main_thread.start()
@@ -141,7 +140,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         # Forever loop to block other server calls if token is registered with server
         if (not self._settings.get(['registered'])):
             self.__probe_auth_token__()
-            self._settings['registered'] = True
+            self._settings.set(['registered'], 'Yes', force=True)
 
         ws_thread = threading.Thread(target=self.__message_loop__)
         ws_thread.daemon = True
@@ -177,7 +176,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             pass
 
     def __connect_server_ws__(self):
-        self.ss = ServerSocket(self.config['ws_host'] + "/app/ws/device", self.config['token'], on_message=self.__on_server_ws_msg__)
+        self.ss = ServerSocket(self._settings.get(['ws_host']) + "/app/ws/device", self._settings.get(['token']), on_message=self.__on_server_ws_msg__)
         wst = threading.Thread(target=self.ss.run)
         wst.daemon = True
         wst.start()
@@ -205,7 +204,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     @backoff.on_exception(backoff.constant, Exception, interval=5)
     def __probe_auth_token__(self):
-        requests.get(self.config['api_host'] + "/api/ping", headers={"Authorization": "Bearer " + self.config['token']}).raise_for_status()
+        requests.get(self._settings.get(['api_host']) + "/api/ping", headers={"Authorization": "Bearer " + self._settings.get(['token'])}).raise_for_status()
 
     def __start_mjpeg_capture__(self):
         self.webcam = self._settings.global_get(["webcam"])

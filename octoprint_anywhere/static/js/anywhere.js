@@ -28,5 +28,5 @@ OCTOPRINT_VIEWMODELS.push([
     [ "printerStateViewModel", "printerProfilesViewModel", "settingsViewModel" ],
 
     // e.g. #settings_plugin_slicer, #tab_plugin_slicer, ...
-    [ "#plugin_anywhere" ]
+    ["#wizard_plugin_anywhere"]
 ]);

@@ -1,4 +1,4 @@
-<a class="btn btn-primary" a href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Register my 3D printer on getanywhere.io</a>
+<a class="btn btn-primary" href="#" data-bind="attr: {href: settings.plugins.anywhere.api_host() + '/pub/link_printer?token=' + settings.plugins.anywhere.token()}" target="blank">Re-register</a>
 
 <div>
     <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Having difficulties registering?</a></small></div>
