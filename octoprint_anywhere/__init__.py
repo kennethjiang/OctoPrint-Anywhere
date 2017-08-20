@@ -38,7 +38,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         return not self.config['registered']
 
     def get_wizard_version(self):
-        return 3
+        return 4
         # Wizard version numbers used in releases
         # < 1.4.2 : no wizard
         # 1.4.2 : 1
@@ -88,9 +88,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 pip="https://github.com/kennethjiang/OctoPrint-Anywhere/archive/{target_version}.zip"
             )
         )
-
-    def get_template_vars(self):
-        return self.config
 
     def on_after_startup(self):
         self._logger = logging.getLogger(__name__)
