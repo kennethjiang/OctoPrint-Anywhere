@@ -1,36 +1,48 @@
-{% if plugin_anywhere_registered %}
-<h3>Hurrah! 3D printer already registered. Nothing to do here.</h3>
-<p><a href="https://www.getanywhere.io/app/devices#">Go to OctoPrint Anywhere dashboard.</a></p>
+<div data-bind="visible: registered() || tokenReset()">
+    <h3>Hurrah! 3D printer already registered. Nothing to do here.</h3>
+    <p><a href="https://www.getanywhere.io/app/devices#">Go to OctoPrint Anywhere dashboard.</a></p>
 
-<div>
     <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Not seeing your 3D printer in getanywhere.io?</a></small></div>
     <div class="hide">
-        <a class="btn btn-primary" href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Re-register</a>
-        <p>If the button doesn't work, open a new browser window and copy this link to the address bar: <code>{{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}}</code></p>
-        <div>If you
-            <ul>
-                <li>tried to re-register and it didn't work, or</li>
-                <li>copied the OctoPi image from another SD card (as opposed to using original OctoPi image),</li>
-            </ul>
-            <a class="btn btn-primary" id="reset-re-register">Reset and Re-register</a>
+        <p>Most likely it is caused by one of the following reasons:</p>
+        <ul>
+            <li>You logged in with a different account than the one your 3D printer was linked to. If that's the case, log out from OctoPrint Anywhere dashboard and log in with the proper account.</li>
+            <li>You copied the OctoPi image from another SD card (as opposed to using original OctoPi image).</li>
+        </ul>
+        <p>In either case, you can solve the problem by following these 2 steps:</p>
+        <div class="row-fluid">
+            <div class="span5">
+                    Step 1:
+                    <button class="btn btn-primary" data-bind="click: resetButtonClicked">
+                        <i class="icon-spinner icon-spin" data-bind="visible: sending"></i>
+                        Reset account
+                    </button>
+            </div>
+            <div class="span5">
+                    Step 2:
+                    <!-- ko if: !tokenReset() -->
+                        <button class="btn" disabled="true">Re-register</button>
+                    <!-- /ko -->
+                    <!-- ko if: tokenReset() -->
+                        <a class="btn btn-primary" data-bind="attr: {href: regUrl()}" target="blank">Re-register</a>
+                    <!-- /ko -->
+            </div>
         </div>
         <p>If it still does not work, please <a href="https://github.com/kennethjiang/OctoPrint-Anywhere/issues/new">report a bug</a>.</p>
     </div>
 </div>
-{% else %}
-<a class="btn btn-primary" a href={{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}} target="blank">Register my 3D printer on getanywhere.io</a>
+<div data-bind="visible: !registered() && !tokenReset()">
+    <a class="btn btn-primary" data-bind="attr: {href: regUrl()}" target="blank">Register my 3D printer on getanywhere.io</a>
 
-<div>
     <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Having difficulties registering?</a></small></div>
     <div class="hide">
       <ul>
         <li>Make sure your browser, as well as Raspberry Pi, are both connected to internet.</li>
-        <li>Open a new browser window and copy this link to the address bar: <code>{{"{}/pub/link_printer?token={}".format(plugin_anywhere_api_host, plugin_anywhere_token)}}</code></li>
+        <li>Open a new browser window and copy this link to the address bar: <code data-bind="text: regUrl()"></code></li>
         <li>If it still does not work, please <a href="https://github.com/kennethjiang/OctoPrint-Anywhere/issues/new">report a bug</a>.</li>
       </ul>
     </div>
 </div>
-{% endif %}
 
 <h3>About OctoPrint Anywhere</h3>
 <p>OctoPrint Anywhere extends your control beyond the local network. Check the video below for a quick overview.</p>

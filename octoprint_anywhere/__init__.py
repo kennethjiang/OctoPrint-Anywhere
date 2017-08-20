@@ -52,6 +52,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     def get_api_commands(self):
         return dict(
             reset_config=[],
+            get_config=[],
         )
 
     def is_api_adminonly(self):
@@ -60,9 +61,12 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     def on_api_command(self, command, data):
         import flask
         if command == "reset_config":
+            old_token = self.config['token']
             self.config.reset_config()
-            self.ss.terminate()   # Server WS connection needs to be reset to pick up new token
-            return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}".format(self.config['api_host'], self.config['token']))
+            self.ss.disconnect()   # Server WS connection needs to be reset to pick up new token
+            return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}&copy_from={2}".format(self.config['api_host'], self.config['token'], old_token), registered=self.config['registered'])
+        elif command == "get_config":
+            return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}".format(self.config['api_host'], self.config['token']), registered=self.config['registered'])
 
 
     def get_update_information(self):
@@ -84,9 +88,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 pip="https://github.com/kennethjiang/OctoPrint-Anywhere/archive/{target_version}.zip"
             )
         )
-
-    def get_template_configs(self):
-        return [ dict(type="settings", template="anywhere_settings.jinja2", custom_bindings=True) ]
 
     def get_template_vars(self):
         return self.config

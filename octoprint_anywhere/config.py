@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import yaml
 
-class Config(dict):
+class Config:
 
     def __init__(self, plugin):
         self.config_path = plugin.get_plugin_data_folder() + "/.config.yaml"
@@ -12,14 +12,14 @@ class Config(dict):
         self.load_config()
 
     def __getitem__(self, key):
-        return self.__dict__[key]
+        return self.__items__[key]
 
     def __setitem__(self, key, value):
-        self.__dict__[key] = value
+        self.__items__[key] = value
         self.save_config()
 
     def values(self):
-        return self.__dict__
+        return self.__items__
 
     def load_config(self):
         import os.path
@@ -32,13 +32,13 @@ class Config(dict):
 
         try:
             with open(self.config_path, 'r') as stream:
-                self.__dict__ = yaml.load(stream)
+                self.__items__ = yaml.load(stream)
         except IOError:
             self.reset_config()
 
     def save_config(self):
         with open(self.config_path, 'w') as outfile:
-            yaml.dump(self.__dict__, outfile, default_flow_style=False)
+            yaml.dump(self.__items__, outfile, default_flow_style=False)
 
     def reset_config(self):
         import random
@@ -47,10 +47,10 @@ class Config(dict):
         token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))
 
         with open(self.config_path, 'w') as outfile:
-            self.__dict__ = dict(
+            self.__items__ = dict(
                     token=token,
                     registered=False,
                     ws_host="ws://getanywhere.herokuapp.com",
                     api_host="https://www.getanywhere.io"
                     )
-            yaml.dump(self.__dict__, outfile, default_flow_style=False)
+            yaml.dump(self.__items__, outfile, default_flow_style=False)
