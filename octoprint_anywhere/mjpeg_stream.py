@@ -118,4 +118,4 @@ if __name__ == "__main__":
     upstream_thread.daemon = True
     upstream_thread.start()
 
-    capture_mjpeg("http://192.168.134.30:8080/?action=stream", q)
+    capture_mjpeg(ConfigStub(sys.argv[1]).load_config()["webcam"], q)
