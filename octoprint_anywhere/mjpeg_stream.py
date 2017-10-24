@@ -12,6 +12,8 @@ import backoff
 from contextlib import closing
 import requests
 from ratelimit import rate_limited
+from azure.storage.blob import BlockBlobService
+import azure, datetime
 
 _logger = logging.getLogger(__name__)
 
@@ -20,8 +22,12 @@ _logger = logging.getLogger(__name__)
 def stream_up(q, cfg):
     class UpStream:
         def __init__(self, q):
-             self.q = q
-             self.cnt = 0
+            self.q = q
+            self.cnt = 0
+            block_blob_service = BlockBlobService('octoprint', 'R+tDkdaabq189eBAVTPyrmjwK4IzleoPqJW1h8WtYLQMk1Y1icjBvb3uB1+4/QjRF5DcUzybzAN1P/ss98a0JQ==')
+            token = block_blob_service.generate_container_shared_access_signature('getanywhere', azure.storage.blob.models.ContainerPermissions(read=True, write=True, delete=True, list=True), datetime.datetime.utcnow() + datetime.timedelta(hours=4),)
+            self.block_sas = BlockBlobService(account_name='octoprint', sas_token=token)
+
 
         def __iter__(self):
             return self
@@ -31,7 +37,10 @@ def stream_up(q, cfg):
             self.cnt = self.cnt + 1;
             if self.cnt < 60:
                 try:
-                    return self.q.get(True, timeout=15.0)
+                    data = self.q.get(True, timeout=15.0)
+                    self.block_sas.create_blob_from_bytes('getanywhere', datetime.datetime.utcnow().strftime("%s.%f")+".jpg", data)
+                    print("uploaded!")
+                    return data
                 except Empty:
                     raise StopIteration()
             else:
@@ -39,7 +48,8 @@ def stream_up(q, cfg):
 
     while True:
         stream = UpStream(q)
-        res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
+        data = next(stream)
+#        res = requests.post(cfg['api_host'] + "/app/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
 
 
 @backoff.on_exception(backoff.expo, Exception)
