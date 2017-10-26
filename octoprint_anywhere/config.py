@@ -33,6 +33,11 @@ class Config:
         try:
             with open(self.config_path, 'r') as stream:
                 self.__items__ = yaml.load(stream)
+
+            if not "stream_host" in self.__items__:
+                self.__items__["stream_host"] = "https://stream.getanywhere.io"
+                self.save_config()
+
         except IOError:
             self.reset_config()
 
@@ -51,6 +56,7 @@ class Config:
                     token=token,
                     registered=False,
                     ws_host="ws://getanywhere.herokuapp.com",
-                    api_host="https://www.getanywhere.io"
+                    api_host="https://www.getanywhere.io",
+                    stream_host="https://stream.getanywhere.io"
                     )
             yaml.dump(self.__items__, outfile, default_flow_style=False)
