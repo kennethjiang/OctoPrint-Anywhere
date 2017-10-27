@@ -35,7 +35,7 @@ class Config:
                 self.__items__ = yaml.load(stream)
 
             if not "stream_host" in self.__items__:
-                self.__items__["stream_host"] = "https://stream.getanywhere.io"
+                self.__items__["stream_host"] = "http://stream.getanywhere.io"
                 self.save_config()
 
         except IOError:
@@ -57,6 +57,6 @@ class Config:
                     registered=False,
                     ws_host="ws://getanywhere.herokuapp.com",
                     api_host="https://www.getanywhere.io",
-                    stream_host="https://stream.getanywhere.io"
+                    stream_host="http://stream.getanywhere.io"
                     )
             yaml.dump(self.__items__, outfile, default_flow_style=False)
