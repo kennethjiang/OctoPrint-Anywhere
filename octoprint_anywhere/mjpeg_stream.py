@@ -29,7 +29,7 @@ def stream_up(q, cfg):
         @rate_limited(period=3, every=1.0)
         def next(self):
             self.cnt = self.cnt + 1;
-            if self.cnt < 60:
+            if self.cnt < 120:
                 try:
                     return self.q.get(True, timeout=15.0)
                 except Empty:
