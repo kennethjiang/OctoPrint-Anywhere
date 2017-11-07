@@ -16,6 +16,12 @@ or manually using this URL:
 
     https://github.com/kennethjiang/OctoPrint-Anywhere/archive/master.zip
 
+After install, go to:
+
+    https://www.getanywhere.io/pub
+
+Any time you wish to see and control your Octoprint from outside your local network. 
+
 ## Contribute
 
 1. Clone OctoPrint-Anywhere and run it
@@ -25,5 +31,3 @@ git clone https://github.com/kennethjiang/OctoPrint-Anywhere.git
 cd OctoPrint-Anywhere
 vargrant up
 ```
-
-1. Open [http://192.168.134.30:5000/](http://192.168.134.30:5000/) in your browser
