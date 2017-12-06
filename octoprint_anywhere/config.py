@@ -7,7 +7,6 @@ class Config:
 
     def __init__(self, plugin):
         self.config_path = plugin.get_plugin_data_folder() + "/.config.yaml"
-        self.old_config_path = plugin._basefolder + "/.config.yaml"
         self._logger = logging.getLogger(__name__)
         self.load_config()
 
@@ -23,12 +22,6 @@ class Config:
 
     def load_config(self):
         import os.path
-        if os.path.isfile(self.old_config_path):
-            try:
-                import shutil
-                shutil.move(self.old_config_path, self.config_path)
-            except Exception as ex:
-                self._logger.exception(ex)
 
         try:
             with open(self.config_path, 'r') as stream:
@@ -36,6 +29,10 @@ class Config:
 
             if not "stream_host" in self.__items__:
                 self.__items__["stream_host"] = "http://stream.getanywhere.io"
+                self.save_config()
+
+            if self.__items__["ws_host"] == "ws://getanywhere.herokuapp.com":
+                self.__items__["ws_host"] = "wss://www.getanywhere.io"
                 self.save_config()
 
         except IOError:
@@ -55,7 +52,7 @@ class Config:
             self.__items__ = dict(
                     token=token,
                     registered=False,
-                    ws_host="ws://getanywhere.herokuapp.com",
+                    ws_host="wss://www.getanywhere.io",
                     api_host="https://www.getanywhere.io",
                     stream_host="http://stream.getanywhere.io"
                     )
