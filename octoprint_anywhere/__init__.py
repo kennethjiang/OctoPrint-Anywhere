@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import absolute_import
 
+import time
 import octoprint.plugin
 import json
 
@@ -172,9 +173,11 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 __process_cmd__(v)
 
 
-    @backoff.on_exception(backoff.constant, Exception, interval=5)
     def __probe_auth_token__(self):
-        requests.get(self.config['api_host'] + "/api/ping", headers={"Authorization": "Bearer " + self.config['token']}).raise_for_status()
+        while True:
+            if requests.get(self.config['api_host'] + "/api/ping", headers={"Authorization": "Bearer " + self.config['token']}).ok:
+                return
+            time.sleep(5)
 
     def __start_mjpeg_capture__(self):
         self.webcam = self._settings.global_get(["webcam"])
