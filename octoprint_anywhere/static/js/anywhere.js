@@ -5,6 +5,7 @@
  * License: AGPLv3
  */
 
+(function () {
 'use strict';
 
 function AnywhereViewModel(parameters) {
@@ -53,3 +54,4 @@ OCTOPRINT_VIEWMODELS.push([
     // e.g. #settings_plugin_slicer, #tab_plugin_slicer, ...
     [ "#settings_plugin_anywhere", "#wizard_plugin_anywhere" ]
 ]);
+}());
