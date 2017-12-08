@@ -175,9 +175,11 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def __probe_auth_token__(self):
         while True:
-            if requests.get(self.config['api_host'] + "/api/ping", headers={"Authorization": "Bearer " + self.config['token']}).ok:
+            try:
+                requests.get(self.config['api_host'] + "/api/ping", headers={"Authorization": "Bearer " + self.config['token']}).raise_for_status()
                 return
-            time.sleep(5)
+            except:
+                time.sleep(5)
 
     def __start_mjpeg_capture__(self):
         self.webcam = self._settings.global_get(["webcam"])
