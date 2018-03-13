@@ -91,7 +91,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def on_after_startup(self):
-        self._logger = logging.getLogger(__name__)
         self.config = Config(self)
 
         self.message_q = Queue(maxsize=128)
@@ -117,7 +116,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         ws_thread.daemon = True
         ws_thread.start()
 
-        upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q,self.config))
+        upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q,self.config, self._printer))
         upstream_thread.daemon = True
         upstream_thread.start()
 

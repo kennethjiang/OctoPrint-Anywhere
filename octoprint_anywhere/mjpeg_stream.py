@@ -1,5 +1,7 @@
 # coding=utf-8
 from __future__ import absolute_import
+from datetime import datetime
+import time
 from Queue import Queue
 from Queue import Empty
 from threading import Thread
@@ -17,11 +19,13 @@ _logger = logging.getLogger(__name__)
 
 @backoff.on_exception(backoff.expo, Exception, max_value=60)
 @backoff.on_predicate(backoff.fibo, max_value=60)
-def stream_up(q, cfg):
+def stream_up(q, cfg, printer):
     class UpStream:
-        def __init__(self, q):
+        def __init__(self, q, printer):
              self.q = q
              self.cnt = 0
+             self.printer = printer
+             self.last_frame_ts = datetime.min
 
         def __iter__(self):
             return self
@@ -31,6 +35,10 @@ def stream_up(q, cfg):
             self.cnt = self.cnt + 1;
             if self.cnt < 120:
                 try:
+                    if not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:
+                        time.sleep(max(0, 10-(datetime.now() - self.last_frame_ts).total_seconds()))
+
+                    self.last_frame_ts = datetime.now()
                     return self.q.get(True, timeout=15.0)
                 except Empty:
                     raise StopIteration()
@@ -38,7 +46,7 @@ def stream_up(q, cfg):
                 raise StopIteration()  # End connection so that `requests.post` can process server response
 
     while True:
-        stream = UpStream(q)
+        stream = UpStream(q, printer)
         res = requests.post(cfg['stream_host'] + "/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
 
 
