@@ -1,6 +1,6 @@
 # coding=utf-8
 from __future__ import absolute_import
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 from Queue import Queue
 from Queue import Empty
@@ -23,7 +23,7 @@ def stream_up(q, cfg, printer):
     class UpStream:
         def __init__(self, q, printer):
              self.q = q
-             self.cnt = 0
+             self.last_reconnect_ts = datetime.now()
              self.printer = printer
              self.last_frame_ts = datetime.min
 
@@ -32,11 +32,11 @@ def stream_up(q, cfg, printer):
 
         @rate_limited(period=3, every=1.0)
         def next(self):
-            self.cnt = self.cnt + 1;
-            if self.cnt < 120:
+            if (datetime.now() - self.last_reconnect_ts).total_seconds() < 60:
                 try:
                     if not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:
-                        time.sleep(max(0, 10-(datetime.now() - self.last_frame_ts).total_seconds()))
+                        seconds_left = 10-(datetime.now() - self.last_frame_ts).total_seconds()
+                        time.sleep(max(0, seconds_left))
 
                     self.last_frame_ts = datetime.now()
                     return self.q.get(True, timeout=15.0)
