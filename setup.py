@@ -14,7 +14,7 @@ plugin_package = "octoprint_anywhere"
 plugin_name = "OctoPrint Anywhere"
 
 # The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
-plugin_version = "0.6.1"
+plugin_version = "0.6.2"
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
@@ -33,7 +33,7 @@ plugin_url = "https://github.com/kennethjiang/OctoPrint-Anywhere"
 plugin_license = "AGPLv3"
 
 # Any additional requirements besides OctoPrint should be listed here
-plugin_requires = ["OctoPrint>=1.2.4", "backoff>=1.4.3", "ratelimit>=1.3.0"]
+plugin_requires = ["OctoPrint>=1.2.4", "backoff>=1.4.3", "ratelimit==1.4.1"]
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point
