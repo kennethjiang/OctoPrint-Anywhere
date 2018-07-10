@@ -24,10 +24,33 @@ Any time you wish to see and control your Octoprint from outside your local netw
 
 ## Contribute
 
-1. Clone OctoPrint-Anywhere and run it
+1. Clone OctoPrint-Anywhere
 
 ```bash
 git clone https://github.com/kennethjiang/OctoPrint-Anywhere.git
+```
+
+2. Launch a Vagrant VM. This step will take about 10 minutes or longer.
+
+```
 cd OctoPrint-Anywhere
 vargrant up
 ```
+
+3. Log into the Vagrant VM
+
+```
+vagrant ssh
+```
+
+4. Start OctoPrint with OctoPrint Anywhere pre-installed as develop mode. These commands need to run in the Vagrant VM.
+
+```
+cd /vagrant
+./start.sh
+```
+
+5. On your laptop, go to http://192.168.134.30:5000/ to access the OctoPrint running on the Vagrant VM.
+
+```
+vagr
