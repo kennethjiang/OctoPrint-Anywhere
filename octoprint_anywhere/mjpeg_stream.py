@@ -13,41 +13,43 @@ from urlparse import urlparse
 import backoff
 from contextlib import closing
 import requests
-from ratelimit import rate_limited
 
 _logger = logging.getLogger(__name__)
 
 @backoff.on_exception(backoff.expo, Exception, max_value=60)
 @backoff.on_predicate(backoff.fibo, max_value=60)
-def stream_up(q, cfg, printer, watch_mode):
+def stream_up(q, cfg, printer, remote_status):
     class UpStream:
         def __init__(self, q, printer):
              self.q = q
              self.last_reconnect_ts = datetime.now()
              self.printer = printer
-             self.watch_mode = watch_mode
+             self.remote_status = remote_status
              self.last_frame_ts = datetime.min
 
         def __iter__(self):
             return self
 
-        @rate_limited(period=3, every=1.0)
+        def seconds_remaining_until_next_cycle(self):
+            cycle_in_seconds = 1.0/3.0 # Limit the bandwidth consumption to 3 frames/second
+            if not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:  # Printer idle
+                if self.remote_status['watching']:
+                    cycle_in_seconds = 2
+                else:
+                    cycle_in_seconds = 20
+            else:
+                if not self.remote_status['watching']:
+                    cycle_in_seconds = 10
+            return cycle_in_seconds-(datetime.now() - self.last_frame_ts).total_seconds()
+
+
         def next(self):
             if (datetime.now() - self.last_reconnect_ts).total_seconds() < 60: # Allow connection to last up to 60s
                 try:
-                    cycle_in_seconds = 0
-                    if not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:  # Printer idle
-                        if self.watch_mode:
-                            cycle_in_seconds = 2
-                        else:
-                            cycle_in_seconds = 20
-                    else:
-                        if not self.watch_mode:
-                            cycle_in_seconds = 10
+                    while self.seconds_remaining_until_next_cycle() > 0:
+                        time.sleep(0.1)
 
-                    seconds_left = cycle_in_seconds-(datetime.now() - self.last_frame_ts).total_seconds()
-                    time.sleep(max(0, seconds_left))
-
+                    print(self.remote_status)
                     self.last_frame_ts = datetime.now()
                     return self.q.get(True, timeout=15.0)
                 except Empty:

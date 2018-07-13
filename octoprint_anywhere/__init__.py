@@ -95,7 +95,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
         self.message_q = Queue(maxsize=128)
         self.webcam_q  = Queue(maxsize=1)
-        self.status = {
+        self.remote_status = {"watching": False}
 
         main_thread = threading.Thread(target=self.__start_server_connections__)
         main_thread.daemon = True
@@ -105,7 +105,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         self.__start_mjpeg_capture__()
 
         # listen to OctoPrint websocket. It's in another thread, which is implemented by OctoPrint code
-        listen_to_octoprint(self._settings.settings, self.message_q)
+        listen_to_octoprint(self._settings.settings, self.message_q, self._plugin_version)
 
     def __start_server_connections__(self):
         # Forever loop to block other server calls if token is registered with server
@@ -117,7 +117,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         ws_thread.daemon = True
         ws_thread.start()
 
-        upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q, self.config, self._printer, self.watch_mode))
+        upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q, self.config, self._printer, self.remote_status))
         upstream_thread.daemon = True
         upstream_thread.start()
 
@@ -166,8 +166,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             for k, v in cmd.iteritems():
                 if k == 'job':
                     __process_job_cmd__(v)
-                elif k == 'watch_mode':
-                    self.watch_mode = v == 'True'
+                elif k == 'watching':
+                    self.remote_status['watching'] = v == 'True'
 
         msgDict = json.loads(msg)
         for k, v in msgDict.iteritems():
