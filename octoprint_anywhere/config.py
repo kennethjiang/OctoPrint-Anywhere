@@ -6,9 +6,16 @@ import yaml
 class Config:
 
     def __init__(self, plugin):
-        self.config_path = plugin.get_plugin_data_folder() + "/.config.yaml"
-        self._logger = logging.getLogger(__name__)
-        self.load_config()
+        from raven import Client
+        self.sentry = Client('https://c6ff6cfbcc32475696753bb37c114a92:450cf825b11c4b72b901c4911878cd6c@sentry.io/1243052')
+
+        try:
+            self.config_path = plugin.get_plugin_data_folder() + "/.config.yaml"
+            self._logger = logging.getLogger(__name__)
+            self.load_config()
+        except:
+            self.sentry.captureException()
+            import traceback; traceback.print_exc()
 
     def __getitem__(self, key):
         return self.__items__[key]
@@ -43,17 +50,20 @@ class Config:
             yaml.dump(self.__items__, outfile, default_flow_style=False)
 
     def reset_config(self):
-        import random
-        import string
-        # If config file not found, create a new random string as token
-        token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))
+        try:
+            import random
+            import string
+            # If config file not found, create a new random string as token
+            token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))
 
-        with open(self.config_path, 'w') as outfile:
-            self.__items__ = dict(
-                    token=token,
-                    registered=False,
-                    ws_host="wss://www.getanywhere.io",
-                    api_host="https://www.getanywhere.io",
-                    stream_host="http://stream.getanywhere.io"
-                    )
-            yaml.dump(self.__items__, outfile, default_flow_style=False)
+            with open(self.config_path, 'w') as outfile:
+                self.__items__ = dict(
+                        token=token,
+                        registered=False,
+                        ws_host="wss://www.getanywhere.io",
+                        api_host="https://www.getanywhere.io",
+                        stream_host="http://stream.getanywhere.io"
+                        )
+                yaml.dump(self.__items__, outfile, default_flow_style=False)
+        except:
+            self.sentry.captureException()

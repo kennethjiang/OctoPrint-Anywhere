@@ -33,7 +33,7 @@ plugin_url = "https://github.com/kennethjiang/OctoPrint-Anywhere"
 plugin_license = "AGPLv3"
 
 # Any additional requirements besides OctoPrint should be listed here
-plugin_requires = ["OctoPrint>=1.2.4", "backoff>=1.4.3", "ratelimit==1.4.1"]
+plugin_requires = ["OctoPrint>=1.2.4", "backoff>=1.4.3", "ratelimit==1.4.1", "raven"]
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point

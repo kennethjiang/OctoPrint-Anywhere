@@ -93,38 +93,45 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     def on_after_startup(self):
         self.config = Config(self)
 
-        self.message_q = Queue(maxsize=128)
-        self.webcam_q  = Queue(maxsize=1)
-        self.remote_status = {"watching": False}
+        try:
+            self.message_q = Queue(maxsize=128)
+            self.webcam_q  = Queue(maxsize=1)
+            self.remote_status = {"watching": False}
 
-        main_thread = threading.Thread(target=self.__start_server_connections__)
-        main_thread.daemon = True
-        main_thread.start()
+            main_thread = threading.Thread(target=self.__start_server_connections__)
+            main_thread.daemon = True
+            main_thread.start()
 
-        # Thread to capture mjpeg from mjpeg_streamer
-        self.__start_mjpeg_capture__()
+            # Thread to capture mjpeg from mjpeg_streamer
+            self.__start_mjpeg_capture__()
 
-        # listen to OctoPrint websocket. It's in another thread, which is implemented by OctoPrint code
-        listen_to_octoprint(self._settings.settings, self.message_q, self._plugin_version)
+            # listen to OctoPrint websocket. It's in another thread, which is implemented by OctoPrint code
+            listen_to_octoprint(self._settings.settings, self.message_q, self._plugin_version)
+        except:
+            self.config.sentry.captureException()
+            import traceback; traceback.print_exc()
 
     def __start_server_connections__(self):
-        # Forever loop to block other server calls if token is registered with server
-        if (not self.config['registered']):
-            self.__probe_auth_token__()
-            self.config['registered'] = True
+        try:
+            # Forever loop to block other server calls if token is registered with server
+            if (not self.config['registered']):
+                self.__probe_auth_token__()
+                self.config['registered'] = True
 
-        ws_thread = threading.Thread(target=self.__message_loop__)
-        ws_thread.daemon = True
-        ws_thread.start()
+            ws_thread = threading.Thread(target=self.__message_loop__)
+            ws_thread.daemon = True
+            ws_thread.start()
 
-        upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q, self.config, self._printer, self.remote_status))
-        upstream_thread.daemon = True
-        upstream_thread.start()
+            upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q, self.config, self._printer, self.remote_status))
+            upstream_thread.daemon = True
+            upstream_thread.start()
+        except:
+            self.config.sentry.captureException()
+            import traceback; traceback.print_exc()
 
     @backoff.on_exception(backoff.expo, Exception, max_value=240)
     @backoff.on_predicate(backoff.expo, max_value=240)
     def __message_loop__(self):
-
         @backoff.on_exception(backoff.fibo, Exception, max_tries=8)
         @backoff.on_predicate(backoff.fibo, max_tries=8)
         def __forward_ws__(ss, message_q):
@@ -184,12 +191,16 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 time.sleep(5)
 
     def __start_mjpeg_capture__(self):
-        self.webcam = self._settings.global_get(["webcam"])
+        try:
+            self.webcam = self._settings.global_get(["webcam"])
 
-        if self.webcam:
-            producer = threading.Thread(target=capture_mjpeg, args=(self.webcam, self.webcam_q))
-            producer.daemon = True
-            producer.start()
+            if self.webcam:
+                producer = threading.Thread(target=capture_mjpeg, args=(self.webcam, self.webcam_q, self.config))
+                producer.daemon = True
+                producer.start()
+        except:
+            self.config.sentry.captureException()
+            import traceback; traceback.print_exc()
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
