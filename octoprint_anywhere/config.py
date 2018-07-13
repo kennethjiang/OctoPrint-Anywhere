@@ -16,7 +16,6 @@ class Config:
             self.config_path = plugin.get_plugin_data_folder() + "/.config.yaml"
             self._logger = logging.getLogger(__name__)
             self.load_config()
-            1/0
         except:
             self.sentry.captureException()
             import traceback; traceback.print_exc()
