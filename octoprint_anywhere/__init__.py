@@ -95,6 +95,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
         self.message_q = Queue(maxsize=128)
         self.webcam_q  = Queue(maxsize=1)
+        self.status = {
 
         main_thread = threading.Thread(target=self.__start_server_connections__)
         main_thread.daemon = True
@@ -116,7 +117,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         ws_thread.daemon = True
         ws_thread.start()
 
-        upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q,self.config, self._printer))
+        upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q, self.config, self._printer, self.watch_mode))
         upstream_thread.daemon = True
         upstream_thread.start()
 
@@ -165,6 +166,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             for k, v in cmd.iteritems():
                 if k == 'job':
                     __process_job_cmd__(v)
+                elif k == 'watch_mode':
+                    self.watch_mode = v == 'True'
 
         msgDict = json.loads(msg)
         for k, v in msgDict.iteritems():

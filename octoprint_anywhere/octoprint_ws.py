@@ -3,12 +3,6 @@ import octoprint_client
 from .utils import ip_addr
 
 def listen_to_octoprint(settings, q):
-    def on_connect(ws):
-        print(">>> Connected!")
-
-    def on_close(ws):
-        print(">>> Oh No! Connection closed! What happened?")
-
     def on_error(ws, error):
         print("!!! Error: {}".format(error))
 
@@ -41,8 +35,6 @@ def listen_to_octoprint(settings, q):
         apikey = settings.get(["api", "key"])
         baseurl = octoprint_client.build_base_url(host=host, port=port)
         client = octoprint_client.Client(baseurl, apikey)
-        client.create_socket(on_connect=on_connect,
-                 on_close=on_close,
-                 on_error=on_error,
+        client.create_socket(on_error=on_error,
                  on_heartbeat=on_heartbeat,
                  on_message=on_message)

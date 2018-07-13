@@ -19,12 +19,13 @@ _logger = logging.getLogger(__name__)
 
 @backoff.on_exception(backoff.expo, Exception, max_value=60)
 @backoff.on_predicate(backoff.fibo, max_value=60)
-def stream_up(q, cfg, printer):
+def stream_up(q, cfg, printer, watch_mode):
     class UpStream:
         def __init__(self, q, printer):
              self.q = q
              self.last_reconnect_ts = datetime.now()
              self.printer = printer
+             self.watch_mode = watch_mode
              self.last_frame_ts = datetime.min
 
         def __iter__(self):
@@ -32,11 +33,20 @@ def stream_up(q, cfg, printer):
 
         @rate_limited(period=3, every=1.0)
         def next(self):
-            if (datetime.now() - self.last_reconnect_ts).total_seconds() < 60:
+            if (datetime.now() - self.last_reconnect_ts).total_seconds() < 60: # Allow connection to last up to 60s
                 try:
-                    if not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:
-                        seconds_left = 10-(datetime.now() - self.last_frame_ts).total_seconds()
-                        time.sleep(max(0, seconds_left))
+                    cycle_in_seconds = 0
+                    if not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:  # Printer idle
+                        if self.watch_mode:
+                            cycle_in_seconds = 2
+                        else:
+                            cycle_in_seconds = 20
+                    else:
+                        if not self.watch_mode:
+                            cycle_in_seconds = 10
+
+                    seconds_left = cycle_in_seconds-(datetime.now() - self.last_frame_ts).total_seconds()
+                    time.sleep(max(0, seconds_left))
 
                     self.last_frame_ts = datetime.now()
                     return self.q.get(True, timeout=15.0)
@@ -74,7 +84,7 @@ def capture_mjpeg(settings, q):
                 chunker = MjpegStreamChunker(q)
 
                 data = res.readline()
-                while not chunker.addLine(data):
+                while not chunker.endOfChunk(data):
                     data = res.readline()
 
 
@@ -87,8 +97,8 @@ class MjpegStreamChunker:
 
     # Return: True: a new chunk is found.
     #         False: in the middle of the chunk
-    def addLine(self, line):
-        if not self.boundary:   # The first time addLine should be called with 'boundary' text as input
+    def endOfChunk(self, line):
+        if not self.boundary:   # The first time endOfChunk should be called with 'boundary' text as input
             self.boundary = line
             self.current_chunk.write(line)
             return False
