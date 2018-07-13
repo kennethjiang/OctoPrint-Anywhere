@@ -6,13 +6,17 @@ import yaml
 class Config:
 
     def __init__(self, plugin):
-        from raven import Client
-        self.sentry = Client('https://c6ff6cfbcc32475696753bb37c114a92:450cf825b11c4b72b901c4911878cd6c@sentry.io/1243052')
+        import raven
+        self.sentry = raven.Client(
+                'https://c6ff6cfbcc32475696753bb37c114a92:450cf825b11c4b72b901c4911878cd6c@sentry.io/1243052',
+                release='0.6.4'
+                )
 
         try:
             self.config_path = plugin.get_plugin_data_folder() + "/.config.yaml"
             self._logger = logging.getLogger(__name__)
             self.load_config()
+            1/0
         except:
             self.sentry.captureException()
             import traceback; traceback.print_exc()
