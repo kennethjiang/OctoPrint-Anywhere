@@ -49,7 +49,6 @@ def stream_up(q, cfg, printer, remote_status):
                     while self.seconds_remaining_until_next_cycle() > 0:
                         time.sleep(0.1)
 
-                    print(self.remote_status)
                     self.last_frame_ts = datetime.now()
                     return self.q.get(True, timeout=15.0)
                 except Empty:
