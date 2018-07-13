@@ -9,7 +9,7 @@ class Config:
         import raven
         self.sentry = raven.Client(
                 'https://c6ff6cfbcc32475696753bb37c114a92:450cf825b11c4b72b901c4911878cd6c@sentry.io/1243052',
-                release='0.6.4'
+                release=plugin._plugin_version
                 )
 
         try:
