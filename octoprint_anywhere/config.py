@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 import logging
 import yaml
+from raven import breadcrumbs
 
 class Config:
 
@@ -35,7 +36,15 @@ class Config:
 
         try:
             with open(self.config_path, 'r') as stream:
-                self.__items__ = yaml.load(stream)
+                config_str = stream.read()
+
+                breadcrumbs.record(message="config path: " + self.config_path)
+                breadcrumbs.record(message="Config file content: " + config_str)
+
+                self.__items__ = yaml.load(config_str)
+
+            if self.__items__ is None:
+                raise IOError("Empty config file")
 
             if not "stream_host" in self.__items__:
                 self.__items__["stream_host"] = "http://stream.getanywhere.io"
