@@ -216,7 +216,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 'hb': {
                     'ipAddrs': ip_addr(),
                     'settings': {
-                        'temperature': self._settings.global_get(['temperature'])
+                        'temperature': self._settings.settings.effective['temperature']
                     },
                 },
                 'origin': 'oa',
