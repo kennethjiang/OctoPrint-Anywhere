@@ -17,6 +17,7 @@ from .mjpeg_stream import capture_mjpeg, stream_up
 from .octoprint_ws import listen_to_octoprint
 from .server_ws import ServerSocket
 from .config import Config
+from .utils import ip_addr
 
 class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.AssetPlugin,
@@ -106,7 +107,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.__start_mjpeg_capture__()
 
             # listen to OctoPrint websocket. It's in another thread, which is implemented by OctoPrint code
-            listen_to_octoprint(self._settings.settings, self.message_q, self._plugin_version)
+            listen_to_octoprint(self._settings.settings, self.message_q, lambda _: self.__send_heartbeat__())
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
@@ -147,6 +148,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
         self.__connect_server_ws__()
         __forward_ws__(self.ss, self.message_q)
+
         self._logger.warn("Reached max backoff in waiting for server ws connection")
         try:
             self.ss.close()
@@ -198,6 +200,22 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 producer = threading.Thread(target=capture_mjpeg, args=(self.webcam, self.webcam_q))
                 producer.daemon = True
                 producer.start()
+        except:
+            self.config.sentry.captureException()
+            import traceback; traceback.print_exc()
+
+    def __send_heartbeat__(self):
+        try:
+            self.message_q.put(json.dumps({
+                'hb': {
+                    'ipAddrs': ip_addr(),
+                    'settings': {
+                        'temperature': self._settings.global_get(['temperature'])
+                    },
+                },
+                'origin': 'oa',
+                'oaVersion': self._plugin_version
+            }, encoding='latin1'))
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()

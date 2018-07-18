@@ -1,17 +1,9 @@
 import json
 import octoprint_client
-from .utils import ip_addr
 
-def listen_to_octoprint(settings, q, plugin_version):
+def listen_to_octoprint(settings, q, on_heartbeat):
     def on_error(ws, error):
         print("!!! Error: {}".format(error))
-
-    def on_heartbeat(ws):
-        q.put(json.dumps({
-            'hb': {'ipAddrs': ip_addr()},
-            'origin': 'oa',
-            'oa_version': plugin_version
-            }))
 
     def on_message(ws, message_type, message_payload):
 
@@ -28,9 +20,7 @@ def listen_to_octoprint(settings, q, plugin_version):
 
     if "init_client" in dir(octoprint_client): # OctoPrint <= 1.3.2
         octoprint_client.init_client(settings)
-        socket = octoprint_client.connect_socket(on_connect=on_connect,
-                                             on_close=on_close,
-                                             on_error=on_error,
+        socket = octoprint_client.connect_socket(on_error=on_error,
                                              on_heartbeat=on_heartbeat,
                                              on_message=on_message)
     else:
