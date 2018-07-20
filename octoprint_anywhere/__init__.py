@@ -177,7 +177,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
         def __process_jog_cmd__(cmd):
             axis = cmd.keys()[0]
-            import ipdb; ipdb.set_trace()
             if isinstance(cmd[axis], int):
                 self._printer.jog(cmd)
             else:
