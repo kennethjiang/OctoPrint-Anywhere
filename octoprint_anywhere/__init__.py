@@ -175,8 +175,13 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             if 'set' in cmd:
                 self._printer.set_temperature(cmd['set']['heater'], cmd['set']['target'])
 
-        def __process_movements_cmd__(cmd):
-                self._printer.jog({"x": 10})
+        def __process_jog_cmd__(cmd):
+            axis = cmd.keys()[0]
+            import ipdb; ipdb.set_trace()
+            if isinstance(cmd[axis], int):
+                self._printer.jog(cmd)
+            else:
+                self._printer.home(axis)
 
         def __process_cmd__(cmd):
             for k, v in cmd.iteritems():
@@ -184,8 +189,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                     __process_job_cmd__(v)
                 if k == 'temps':
                     __process_temps_cmd__(v)
-                if k == 'z':
-                    __process_movements_cmd__(v)
+                if k == 'jog':
+                    __process_jog_cmd__(v)
                 elif k == 'watching':
                     self.remote_status['watching'] = v == 'True'
 
