@@ -51,6 +51,3 @@ cd /vagrant
 ```
 
 5. On your laptop, go to http://192.168.134.30:5000/ to access the OctoPrint running on the Vagrant VM.
-
-```
-vagr
