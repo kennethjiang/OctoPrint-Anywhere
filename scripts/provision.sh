@@ -25,7 +25,7 @@ sudo cp -r $WD/jpgs /mjpg-streamer/
 
 sudo cp $WD/scripts/rc.local /etc/
 
-version=1.3.4
+version=1.3.9
 sudo mkdir /octoprint && cd /octoprint
 sudo curl -o octoprint.tar.gz -L https://github.com/foosel/OctoPrint/archive/${version}.tar.gz
 sudo tar -xvf octoprint.tar.gz --strip 1
@@ -38,6 +38,6 @@ sudo pip install -r requirements.txt
 sudo python setup.py install
 
 cd /vagrant
-mkdir -f data
+mkdir -p data
 sudo python setup.py develop
 if [ ! -f data/config.yaml ]; then cp octoprint-config.yaml data/config.yaml; fi
