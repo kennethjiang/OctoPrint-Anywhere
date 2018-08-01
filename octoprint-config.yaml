@@ -4,8 +4,8 @@ api:
   key: 6CDB7AD1ED944C18B1FF82E6AACC7105
 webcam:
   ffmpeg: /usr/bin/avconv
-  snapshot: http://127.0.0.1:8080/?action=snapshot
-  stream: http://127.0.0.1:8080/?action=stream
+  snapshot: http://192.168.134.30:8080/?action=snapshot
+  stream: http://192.168.134.30:8080/?action=stream
 plugins:
   announcements:
     _config_version: 1
