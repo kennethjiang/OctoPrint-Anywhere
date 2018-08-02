@@ -221,12 +221,14 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def __send_heartbeat__(self):
         try:
+            octolapse = self._plugin_manager.get_plugin_info('octolapse')
             self.message_q.put(json.dumps({
                 'hb': {
                     'ipAddrs': ip_addr(),
                     'settings': {
                         'temperature': self._settings.settings.effective['temperature']
                     },
+                    'octolapse': {'version': octolapse.version, 'enabled': octolapse.enabled} if octolapse else None,
                 },
                 'origin': 'oa',
                 'oaVersion': self._plugin_version
