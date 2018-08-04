@@ -14,6 +14,7 @@ import requests
 from ratelimit import rate_limited
 
 from .mjpeg_stream import capture_mjpeg, stream_up
+from .timelapse import upload_timelapses
 from .octoprint_ws import listen_to_octoprint
 from .server_ws import ServerSocket
 from .config import Config
@@ -126,6 +127,10 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q, self.config, self._printer, self.remote_status))
             upstream_thread.daemon = True
             upstream_thread.start()
+
+            timelapse_upload_thread = threading.Thread(target=upload_timelapses, args=(self.config, self._settings.settings.getBaseFolder("timelapse")))
+            timelapse_upload_thread.daemon = True
+            timelapse_upload_thread.start()
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()

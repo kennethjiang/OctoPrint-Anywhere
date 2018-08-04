@@ -4,17 +4,35 @@ import logging
 import backoff
 from contextlib import closing
 import requests
+import os
+import time
 
-_logger = logging.getLogger(__name__)
+def upload_timelapses(cfg, timelapse_dir):
+    TWO_WEEKS = 60*60*24*14
 
-@backoff.on_exception(backoff.expo, Exception, max_value=60)
-@backoff.on_predicate(backoff.constant, interval=600)
-def upload_timelapses(cfg):
-    r = requests.get(cfg['stream_host'] + "/timelapses/", headers={"Authorization": "Bearer " + cfg['token']})
-    r.raise_for_status()
-    timelapses = r.json()
-    if not timelapses['device']['octolapseOptedIn']:
-        return false
+    while True:
+        r = requests.get(cfg['stream_host'] + "/timelapses/", headers={"Authorization": "Bearer " + cfg['token']})
+        r.raise_for_status()
+        resp = r.json()
+        if resp['device']['octolapseOptedIn']:
+            all_files = [(f, os.stat(os.path.join(timelapse_dir, f))) for f in os.listdir(timelapse_dir)]
+            all_files.sort(key=lambda f: f[1].st_mtime,  reverse=True) # sorted by modification timestamp
+
+            upload_candidates = [f[0] for f in all_files if f[0].endswith(".mp4")
+                    and f[1].st_mtime > (time.time() - TWO_WEEKS)][:20]   # Go back up to 2 weeks, or 20 timelapses
+
+            uploaded_timelapses = [f['gcodeName'] for f in resp['timelapses']]
+            for f in reversed(upload_candidates):
+                if not f in uploaded_timelapses:
+                    time.sleep(10)  # Give the file system 10s buffer in case the file is still being written to
+                    requests.post(
+                        cfg['stream_host'] + "/timelapses/",
+                        files={'file': open(os.path.join(timelapse_dir, f), 'rb')},
+                        headers={"Authorization": "Bearer " + cfg['token']}
+                        ).raise_for_status()
+
+        time.sleep(120)
+
 
 if __name__ == "__main__":
     class ConfigStub:
@@ -34,4 +52,4 @@ if __name__ == "__main__":
     req_log.propagate = True
     import sys
 
-    upload_timelapses(ConfigStub(sys.argv[1]).load_config())
+    upload_timelapses(ConfigStub(sys.argv[1]).load_config(), sys.argv[2])
