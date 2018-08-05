@@ -16,7 +16,7 @@ import requests
 
 _logger = logging.getLogger(__name__)
 
-@backoff.on_exception(backoff.expo, Exception, max_value=60)
+@backoff.on_exception(backoff.expo, Exception, max_value=180)
 @backoff.on_predicate(backoff.fibo, max_value=60)
 def stream_up(q, cfg, printer, remote_status):
     class UpStream:
