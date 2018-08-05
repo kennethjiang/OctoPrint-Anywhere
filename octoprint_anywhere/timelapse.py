@@ -7,6 +7,7 @@ import requests
 import os
 import time
 
+@backoff.on_exception(backoff.expo, Exception, max_value=6000)
 def upload_timelapses(cfg, timelapse_dir):
     TWO_WEEKS = 60*60*24*14
 
