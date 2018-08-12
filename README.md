@@ -18,20 +18,23 @@ OctoPrint Anywhere streams the webcam feed, bed/nozzle temperature, and other cr
 
 ## Screenshots
 
-![Webcam Feed](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/screenshot1.png?raw=true, "Webcam Feed") ![Webcam Feed](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/screenshot2.png?raw=true, "Webcam Feed")
+![Webcam Feed](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/screenshot1.png?raw=true, "Webcam Feed") ![Print Status Control](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/screenshot2.png?raw=true, "Print Status Control") ![Webcam Feed](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/screenshot3.png?raw=true, "Webcam Sharing")
 
-## Setup
+![Temperature Adjustment](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/screenshot5.png?raw=true, "Temperature Adjustment") ![On iPad or Laptop](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/screenshot4.png?raw=true, "On iPad or Laptop")
 
-Install via the bundled [Plugin Manager](https://github.com/foosel/OctoPrint/wiki/Plugin:-Plugin-Manager)
-or manually using this URL:
+## Installation And Setup
 
-    https://github.com/kennethjiang/OctoPrint-Anywhere/archive/master.zip
+![](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/setup_screenshot0.png?raw=true)
 
-After install, go to:
+![](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/setup_screenshot1.png?raw=true)
 
-    https://www.getanywhere.io/pub
+![](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/setup_screenshot2.png?raw=true)
 
-Any time you wish to see and control your Octoprint from outside your local network.
+![](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/setup_screenshot3.png?raw=true)
+
+![](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/setup_screenshot4.png?raw=true)
+
+![](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/setup_screenshot5.png?raw=true)
 
 ## Contribute
 
