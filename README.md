@@ -1,13 +1,26 @@
 # OctoPrint Anywhere
 
-OctoPrint Anywhere extends your control beyond the local network.
+Remote monitoring and control of your 3D printers. ANYWHERE. ON YOUR PHONE. No more port forwarding or VPN.
 
-* Get webcam feed on your smart phone (Only when you are checking. There is no network traffic when the page is open in background).
-* Get real-time feed on temperatures and print job.
-* Pause or cancel print job.
-* Display the IP address of your OctoPrint on your phone.
+OctoPrint Anywhere streams the webcam feed, bed/nozzle temperature, and other critical status from your 3D printer to your phone via the cloud. Now you don't have to be on the same WiFi network as the OctoPrint to monitor and control your 3D printer.
+
+## Highlights of OctoPrint Anywhere
+
+* Webcam feed on your phone. Extremely low latency (usually <3s).
+* Real-time feed on temperatures and status of active print. Pause or cancel the active print.
+* Bandwidth-efficiency. Streams data only when you are watching. Data transmission immediately stops when browser tab goes to background.
+* Sharing realtime webcam feed with your friends with an encrypted link!
+* Access to your timelapses anywhere so that you can show them off! Sharing them too!
+* Remote control of X/Y/Z movement.
+* Seeing the IP address of your OctoPrint.
 * Check status of all your 3D printers on the same page at a glance.
 * Many more to come...
+
+## Screenshots
+
+<p align="center">
+  <img width="460" height="300" src="https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/jpgs1/02.jpg?raw=true" />
+</p>
 
 ## Setup
 
@@ -20,7 +33,7 @@ After install, go to:
 
     https://www.getanywhere.io/pub
 
-Any time you wish to see and control your Octoprint from outside your local network. 
+Any time you wish to see and control your Octoprint from outside your local network.
 
 ## Contribute
 
