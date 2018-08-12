@@ -18,9 +18,7 @@ OctoPrint Anywhere streams the webcam feed, bed/nozzle temperature, and other cr
 
 ## Screenshots
 
-<p align="center">
-  <img width="460" height="300" src="https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/jpgs1/02.jpg?raw=true" />
-</p>
+![Webcam Feed](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/screenshot1.png?raw=true, "Webcam Feed") ![Webcam Feed](https://github.com/kennethjiang/OctoPrint-Anywhere/blob/master/assets/screenshot2.png?raw=true, "Webcam Feed")
 
 ## Setup
 
