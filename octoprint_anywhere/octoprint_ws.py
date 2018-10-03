@@ -1,7 +1,7 @@
 import json
 import octoprint_client
 
-def listen_to_octoprint(settings, q, on_heartbeat):
+def listen_to_octoprint(octoprint_host, octoprint_port, settings, q, on_heartbeat):
     def on_error(ws, error):
         print("!!! Error: {}".format(error))
 
@@ -24,11 +24,9 @@ def listen_to_octoprint(settings, q, on_heartbeat):
                                              on_heartbeat=on_heartbeat,
                                              on_message=on_message)
     else:
-        host = settings.get(["server", "host"])
-        host = host if host != "0.0.0.0" else "127.0.0.1"
-        port = settings.getInt(["server", "port"])
+        host = octoprint_host if octoprint_host not in ["0.0.0.0", "::"] else "127.0.0.1"
         apikey = settings.get(["api", "key"])
-        baseurl = octoprint_client.build_base_url(host=host, port=port)
+        baseurl = octoprint_client.build_base_url(host=host, port=octoprint_port)
         client = octoprint_client.Client(baseurl, apikey)
         client.create_socket(on_error=on_error,
                  on_heartbeat=on_heartbeat,

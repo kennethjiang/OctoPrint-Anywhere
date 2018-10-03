@@ -92,6 +92,10 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             )
         )
 
+    def on_startup(self, host, port):
+        self._octoprint_host = host if host else self._settings.get(["server", "host"])
+        self._octoprint_port = port if port else self._settings.getInt(["server", "port"])
+
     def on_after_startup(self):
         self.config = Config(self)
 
@@ -108,7 +112,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.__start_mjpeg_capture__()
 
             # listen to OctoPrint websocket. It's in another thread, which is implemented by OctoPrint code
-            listen_to_octoprint(self._settings.settings, self.message_q, lambda _: self.__send_heartbeat__())
+            listen_to_octoprint(self._octoprint_host, self._octoprint_port, self._settings.settings, self.message_q, lambda _: self.__send_heartbeat__())
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
