@@ -64,7 +64,7 @@ def stream_up(q, cfg, printer, remote_status):
 @backoff.on_exception(backoff.expo, Exception)
 @backoff.on_predicate(backoff.fibo)
 def capture_mjpeg(settings, q):
-    snapshot_url = settings.get("snapshot", None)
+    snapshot_url = settings.get("snapshot", None).strip()
     if snapshot_url:
         if not urlparse(snapshot_url).scheme:
             snapshot_url = "http://localhost/" + re.sub(r"^\/", "", snapshot_url)
@@ -76,7 +76,7 @@ def capture_mjpeg(settings, q):
                 q.put(data)
 
     else:
-        stream_url = settings.get("stream", "/webcam/?action=stream")
+        stream_url = settings.get("stream", "/webcam/?action=stream").strip()
         if not urlparse(stream_url).scheme:
             stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
 
