@@ -21,6 +21,7 @@ from .utils import ip_addr
 
 class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.AssetPlugin,
+                     octoprint.plugin.EventHandlerPlugin,
                      octoprint.plugin.TemplatePlugin,
                      octoprint.plugin.StartupPlugin,
                      octoprint.plugin.SimpleApiPlugin,
@@ -144,9 +145,10 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         while self.ss.connected():
             if time.time() - last_heartbeat > 60:
                 self.__send_heartbeat__()
+                last_heartbeat = time.time()
 
             self.__send_octoprint_data__()
-            time.sleep(5)
+            time.sleep(10)
 
         try:
             self.ss.close()
@@ -249,7 +251,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     ##~~ Eventhandler mixin
 
     def on_event(self, event, payload):
-	if event.startswith("Print"):
+        if event.startswith("Print"):
             self.__send_octoprint_data__()
 
 
