@@ -15,7 +15,6 @@ from ratelimit import rate_limited
 
 from .mjpeg_stream import capture_mjpeg, stream_up
 from .timelapse import upload_timelapses
-from .octoprint_ws import listen_to_octoprint
 from .server_ws import ServerSocket
 from .config import Config
 from .utils import ip_addr
@@ -100,7 +99,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         self.config = Config(self)
 
         try:
-            self.message_q = Queue(maxsize=128)
             self.webcam_q  = Queue(maxsize=1)
             self.remote_status = {"watching": False}
 
@@ -110,9 +108,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
             # Thread to capture mjpeg from mjpeg_streamer
             self.__start_mjpeg_capture__()
-
-            # listen to OctoPrint websocket. It's in another thread, which is implemented by OctoPrint code
-            listen_to_octoprint(self._octoprint_host, self._octoprint_port, self._settings.settings, self.message_q, lambda _: self.__send_heartbeat__())
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
@@ -139,30 +134,26 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
 
-    @backoff.on_exception(backoff.expo, Exception, max_value=240)
-    @backoff.on_predicate(backoff.expo, max_value=240)
+    @backoff.on_exception(backoff.expo, Exception, max_value=1200)
+    @backoff.on_predicate(backoff.expo, max_value=1200)
     def __message_loop__(self):
-        @backoff.on_exception(backoff.fibo, Exception, max_tries=8)
-        @backoff.on_predicate(backoff.fibo, max_tries=8)
-        def __forward_ws__(ss, message_q):
-
-            @rate_limited(period=1, every=4.0)
-            def __exhaust_message_queues__(ss, message_q):
-                while not message_q.empty():
-                    ss.send_text(message_q.get_nowait())
-
-            while ss.connected():
-                __exhaust_message_queues__(ss, message_q)
-            self._logger.warn("Not connected to server ws or connection lost")
+        last_heartbeat = 0
 
         self.__connect_server_ws__()
-        __forward_ws__(self.ss, self.message_q)
+        time.sleep(3)
+        while self.ss.connected():
+            if time.time() - last_heartbeat > 60:
+                self.__send_heartbeat__()
 
-        self._logger.warn("Reached max backoff in waiting for server ws connection")
+            self.__send_octoprint_data__()
+            time.sleep(5)
+
         try:
             self.ss.close()
         except:
             pass
+
+        return False
 
     def __connect_server_ws__(self):
         self.ss = ServerSocket(self.config['ws_host'] + "/app/ws/device", self.config['token'], on_message=self.__on_server_ws_msg__)
@@ -228,10 +219,19 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
 
+    def __send_octoprint_data__(self):
+        try:
+            data = self._printer.get_current_data()
+            data['temps'] = self._printer.get_current_temperatures()
+            self.ss.send_text(json.dumps(data))
+        except:
+            self.config.sentry.captureException()
+            import traceback; traceback.print_exc()
+
     def __send_heartbeat__(self):
         try:
             octolapse = self._plugin_manager.get_plugin_info('octolapse')
-            self.message_q.put(json.dumps({
+            self.ss.send_text(json.dumps({
                 'hb': {
                     'ipAddrs': ip_addr(),
                     'settings': {
@@ -245,6 +245,12 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
+
+    ##~~ Eventhandler mixin
+
+    def on_event(self, event, payload):
+	if event.startswith("Print"):
+            self.__send_octoprint_data__()
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py

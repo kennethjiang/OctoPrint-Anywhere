@@ -19,9 +19,6 @@ class ServerSocket:
     def run(self):
         self.ws.run_forever()
 
-    def send_binary(self, data):
-        self.ws.send(data, websocket.ABNF.OPCODE_BINARY)
-
     def send_text(self, data):
         self.ws.send(data)
 
@@ -30,13 +27,3 @@ class ServerSocket:
 
     def disconnect(self):
         self.ws.close()
-
-if __name__ == "__main__":
-    ss = ServerSocket("ws://localhost:6001/app/ws", "1234")
-    wst = Thread(target=ss.run)
-    wst.daemon = True
-    wst.start()
-    while True:
-        aaa = open("/Users/kenneth/.rvm/gems/ruby-2.2.4/gems/xcpretty-0.2.4/features/fixtures/xcodebuild.log").read()
-        ss.send_binary(aaa)
-        print len(aaa)
