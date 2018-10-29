@@ -252,7 +252,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def on_event(self, event, payload):
         if event.startswith("Print"):
-            self.__send_octoprint_data__()
+            if hasattr(self, 'ss') and self.ss.connected():
+                self.__send_octoprint_data__()
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
