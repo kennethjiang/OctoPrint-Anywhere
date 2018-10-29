@@ -120,10 +120,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 self.__probe_auth_token__()
                 self.config['registered'] = True
 
-            ws_thread = threading.Thread(target=self.__message_loop__)
-            ws_thread.daemon = True
-            ws_thread.start()
-
             upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q, self.config, self._printer, self.remote_status))
             upstream_thread.daemon = True
             upstream_thread.start()
@@ -131,6 +127,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             timelapse_upload_thread = threading.Thread(target=upload_timelapses, args=(self.config, self._settings.settings.getBaseFolder("timelapse")))
             timelapse_upload_thread.daemon = True
             timelapse_upload_thread.start()
+
+            self.__message_loop__()
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
