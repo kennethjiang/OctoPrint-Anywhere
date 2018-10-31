@@ -11,7 +11,7 @@ def ip_addr():
 
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 53))
+    s.connect(('10.255.255.255', 1))
     primary_ip = s.getsockname()[0]
     s.close()
 
