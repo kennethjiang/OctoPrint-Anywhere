@@ -16,6 +16,7 @@ from .mjpeg_stream import capture_mjpeg, stream_up
 from .timelapse import upload_timelapses
 from .server_ws import ServerSocket
 from .config import Config
+from .remote_status import RemoteStatus
 from .utils import ip_addr
 
 class AnywherePlugin(octoprint.plugin.SettingsPlugin,
@@ -96,7 +97,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         self.op_info = self.__gather_op_info__()
 
         try:
-            self.remote_status = {"watching": False}
+            self.remote_status = RemoteStatus()
 
             main_thread = threading.Thread(target=self.__start_server_connections__)
             main_thread.daemon = True
