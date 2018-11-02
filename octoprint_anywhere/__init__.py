@@ -95,15 +95,12 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         self.config = Config(self)
 
         try:
-            self.webcam_q  = Queue(maxsize=1)
             self.remote_status = {"watching": False}
 
             main_thread = threading.Thread(target=self.__start_server_connections__)
             main_thread.daemon = True
             main_thread.start()
 
-            # Thread to capture mjpeg from mjpeg_streamer
-            self.__start_mjpeg_capture__()
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
@@ -115,7 +112,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 self.__probe_auth_token__()
                 self.config['registered'] = True
 
-            upstream_thread = threading.Thread(target=stream_up, args=(self.webcam_q, self.config, self._printer, self.remote_status))
+            upstream_thread = threading.Thread(target=stream_up, args=(self.config, self._printer, self.remote_status, self._settings.global_get(["webcam"])))
             upstream_thread.daemon = True
             upstream_thread.start()
 
@@ -186,6 +183,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 if k == 'jog':
                     __process_jog_cmd__(v)
                 elif k == 'watching':
+                    #print('remote_status changing: ' + v)
                     self.remote_status['watching'] = v == 'True'
 
         msgDict = json.loads(msg)
@@ -201,18 +199,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 return
             except:
                 time.sleep(5)
-
-    def __start_mjpeg_capture__(self):
-        try:
-            self.webcam = self._settings.global_get(["webcam"])
-
-            if self.webcam:
-                producer = threading.Thread(target=capture_mjpeg, args=(self.webcam, self.webcam_q))
-                producer.daemon = True
-                producer.start()
-        except:
-            self.config.sentry.captureException()
-            import traceback; traceback.print_exc()
 
     def __send_octoprint_data__(self):
         try:

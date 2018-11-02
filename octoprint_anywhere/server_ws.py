@@ -1,7 +1,6 @@
 # coding=utf-8
 
 import time
-from threading import Thread
 import websocket
 
 class ServerSocket:
