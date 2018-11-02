@@ -27,9 +27,9 @@ def upload_timelapses(stream_host, token, timelapse_dir):
                 if not f in uploaded_timelapses:
                     time.sleep(10)  # Give the file system 10s buffer in case the file is still being written to
                     requests.post(
-                        cfg['stream_host'] + "/timelapses/",
+                        stream_host + "/timelapses/",
                         files={'file': open(os.path.join(timelapse_dir, f), 'rb')},
-                        headers={"Authorization": "Bearer " + cfg['token']}
+                        headers={"Authorization": "Bearer " + token}
                         ).raise_for_status()
 
         time.sleep(120)
