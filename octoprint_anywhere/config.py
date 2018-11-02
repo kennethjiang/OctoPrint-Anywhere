@@ -1,12 +1,15 @@
 # coding=utf-8
 from __future__ import absolute_import
 import logging
+import threading
 import yaml
 from raven import breadcrumbs
 
 class Config:
 
     def __init__(self, plugin):
+        self._mutex = threading.RLock()
+
         import raven
         self.sentry = raven.Client(
                 'https://c6ff6cfbcc32475696753bb37c114a92:450cf825b11c4b72b901c4911878cd6c@sentry.io/1243052',
@@ -22,14 +25,13 @@ class Config:
             import traceback; traceback.print_exc()
 
     def __getitem__(self, key):
-        return self.__items__[key]
+        with self._mutex:
+            return self.__items__[key]
 
     def __setitem__(self, key, value):
-        self.__items__[key] = value
-        self.save_config()
-
-    def values(self):
-        return self.__items__
+        with self._mutex:
+            self.__items__[key] = value
+            self.save_config()
 
     def load_config(self):
         import os.path
@@ -41,25 +43,25 @@ class Config:
                 breadcrumbs.record(message="config path: " + self.config_path)
                 breadcrumbs.record(message="Config file content: " + config_str)
 
-                self.__items__ = yaml.load(config_str)
+                with self._mutex:
+                    self.__items__ = yaml.load(config_str)
 
             if self.__items__ is None:
                 raise IOError("Empty config file")
 
             if not "stream_host" in self.__items__:
-                self.__items__["stream_host"] = "http://stream.getanywhere.io"
-                self.save_config()
-
-            if self.__items__["ws_host"] == "ws://getanywhere.herokuapp.com":
-                self.__items__["ws_host"] = "wss://www.getanywhere.io"
-                self.save_config()
+                with self._mutex:
+                    self.__items__["stream_host"] = "http://stream.getanywhere.io"
+                    self.save_config()
 
         except IOError:
+            self.sentry.captureException()
             self.reset_config()
 
     def save_config(self):
         with open(self.config_path, 'w') as outfile:
-            yaml.dump(self.__items__, outfile, default_flow_style=False)
+                with self._mutex:
+                    yaml.dump(self.__items__, outfile, default_flow_style=False)
 
     def reset_config(self):
         try:
@@ -69,13 +71,14 @@ class Config:
             token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(32))
 
             with open(self.config_path, 'w') as outfile:
-                self.__items__ = dict(
-                        token=token,
-                        registered=False,
-                        ws_host="wss://www.getanywhere.io",
-                        api_host="https://www.getanywhere.io",
-                        stream_host="http://stream.getanywhere.io"
-                        )
-                yaml.dump(self.__items__, outfile, default_flow_style=False)
+                with self._mutex:
+                    self.__items__ = dict(
+                            token=token,
+                            registered=False,
+                            ws_host="wss://www.getanywhere.io",
+                            api_host="https://www.getanywhere.io",
+                            stream_host="http://stream.getanywhere.io"
+                            )
+                    yaml.dump(self.__items__, outfile, default_flow_style=False)
         except:
             self.sentry.captureException()
