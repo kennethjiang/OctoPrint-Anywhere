@@ -93,6 +93,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def on_after_startup(self):
         self.config = Config(self)
+        self.op_info = self.__gather_op_info__()
 
         try:
             self.remote_status = {"watching": False}
@@ -211,14 +212,11 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def __send_heartbeat__(self):
         try:
-            octolapse = self._plugin_manager.get_plugin_info('octolapse')
             self.ss.send_text(json.dumps({
                 'hb': {
-                    'ipAddrs': ip_addr(),
-                    'settings': {
-                        'temperature': self._settings.settings.effective['temperature']
-                    },
-                    'octolapse': {'version': octolapse.version, 'enabled': octolapse.enabled} if octolapse else None,
+                    'ipAddrs': self.op_info['ip_addrs'],
+                    'settings': self.op_info['settings'],
+                    'octolapse': self.op_info['octolapse'],
                 },
                 'origin': 'oa',
                 'oaVersion': self._plugin_version
@@ -226,6 +224,16 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
+
+    def __gather_op_info__(self):
+        octolapse = self._plugin_manager.get_plugin_info('octolapse')
+        return {
+                'ip_addrs': ip_addr(),
+                'octolapse': {'version': octolapse.version, 'enabled': octolapse.enabled} if octolapse else None,
+                'settings': {
+                        'temperature': self._settings.settings.effective['temperature']
+                    }
+                }
 
     ##~~ Eventhandler mixin
 
