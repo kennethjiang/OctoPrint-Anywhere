@@ -186,7 +186,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 if k == 'jog':
                     __process_jog_cmd__(v)
                 elif k == 'watching':
-                    #print('remote_status changing: ' + v)
                     self.remote_status['watching'] = v == 'True'
 
         msgDict = json.loads(msg)

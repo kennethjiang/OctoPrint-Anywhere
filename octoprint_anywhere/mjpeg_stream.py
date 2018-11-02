@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 from datetime import datetime, timedelta
 import time
-from threading import Thread
 import logging
 import StringIO
 import re
