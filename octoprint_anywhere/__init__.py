@@ -11,7 +11,6 @@ import threading
 from Queue import Queue
 import backoff
 import requests
-from ratelimit import rate_limited
 
 from .mjpeg_stream import capture_mjpeg, stream_up
 from .timelapse import upload_timelapses
@@ -91,10 +90,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 pip="https://github.com/kennethjiang/OctoPrint-Anywhere/archive/{target_version}.zip"
             )
         )
-
-    def on_startup(self, host, port):
-        self._octoprint_host = host if host else self._settings.get(["server", "host"])
-        self._octoprint_port = port if port else self._settings.getInt(["server", "port"])
 
     def on_after_startup(self):
         self.config = Config(self)
