@@ -93,10 +93,9 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def on_after_startup(self):
-        self.config = Config(self)
-        self.op_info = self.__gather_op_info__()
-
         try:
+            self.config = Config(self)
+            self.op_info = self.__gather_op_info__()
             self.remote_status = RemoteStatus()
 
             main_thread = threading.Thread(target=self.__start_server_connections__)
@@ -114,11 +113,13 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 self.__probe_auth_token__()
                 self.config['registered'] = True
 
-            upstream_thread = threading.Thread(target=stream_up, args=(self.config, self._printer, self.remote_status, self._settings.global_get(["webcam"])))
+            stream_host = self.config['stream_host']
+            token = self.config['token']
+            upstream_thread = threading.Thread(target=stream_up, args=(stream_host, token, self._printer, self.remote_status, self._settings.global_get(["webcam"])))
             upstream_thread.daemon = True
             upstream_thread.start()
 
-            timelapse_upload_thread = threading.Thread(target=upload_timelapses, args=(self.config, self._settings.settings.getBaseFolder("timelapse")))
+            timelapse_upload_thread = threading.Thread(target=upload_timelapses, args=(stream_host, token, self._settings.settings.getBaseFolder("timelapse")))
             timelapse_upload_thread.daemon = True
             timelapse_upload_thread.start()
 
@@ -133,7 +134,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         last_heartbeat = 0
 
         self.__connect_server_ws__()
-        time.sleep(3)
+        time.sleep(2)  # Allow the time for server ws to connect
         while self.ss.connected():
             if time.time() - last_heartbeat > 60:
                 self.__send_heartbeat__()

@@ -8,11 +8,11 @@ import os
 import time
 
 @backoff.on_exception(backoff.expo, Exception, max_value=6000)
-def upload_timelapses(cfg, timelapse_dir):
+def upload_timelapses(stream_host, token, timelapse_dir):
     TWO_WEEKS = 60*60*24*14
 
     while True:
-        r = requests.get(cfg['stream_host'] + "/timelapses/", headers={"Authorization": "Bearer " + cfg['token']})
+        r = requests.get(stream_host + "/timelapses/", headers={"Authorization": "Bearer " + token})
         r.raise_for_status()
         resp = r.json()
         if resp['device']['octolapseOptedIn']:

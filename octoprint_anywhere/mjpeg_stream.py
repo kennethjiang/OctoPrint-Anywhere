@@ -16,7 +16,7 @@ _logger = logging.getLogger(__name__)
 
 @backoff.on_exception(backoff.expo, Exception, max_value=180)
 @backoff.on_predicate(backoff.fibo, max_value=60)
-def stream_up(cfg, printer, remote_status, settings):
+def stream_up(stream_host, token, printer, remote_status, settings):
     class UpStream:
         def __init__(self, printer, settings):
              self.settings = settings
@@ -56,7 +56,7 @@ def stream_up(cfg, printer, remote_status, settings):
 
     while True:
         stream = UpStream(printer, settings)
-        res = requests.post(cfg['stream_host'] + "/video", data=stream, headers={"Authorization": "Bearer " + cfg['token']}).raise_for_status()
+        res = requests.post(stream_host + "/video", data=stream, headers={"Authorization": "Bearer " + token}).raise_for_status()
 
 
 def capture_mjpeg(settings):
