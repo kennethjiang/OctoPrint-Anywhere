@@ -11,8 +11,9 @@ import threading
 from Queue import Queue
 import backoff
 import requests
+from raven import breadcrumbs
 
-from .mjpeg_stream import capture_mjpeg, stream_up
+from .mjpeg_stream import stream_up
 from .timelapse import upload_timelapses
 from .server_ws import ServerSocket
 from .config import Config
@@ -115,7 +116,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
             stream_host = self.config['stream_host']
             token = self.config['token']
-            upstream_thread = threading.Thread(target=stream_up, args=(stream_host, token, self._printer, self.remote_status, self._settings.global_get(["webcam"])))
+            upstream_thread = threading.Thread(target=stream_up, args=(stream_host, token, self._printer, self.remote_status, self._settings.global_get(["webcam"]), self.config.sentry))
             upstream_thread.daemon = True
             upstream_thread.start()
 
@@ -136,6 +137,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         self.__connect_server_ws__()
         time.sleep(2)  # Allow the time for server ws to connect
         while self.ss.connected():
+            breadcrumbs.record(message="Message loop for: " + self.config['token'])
             if time.time() - last_heartbeat > 60:
                 self.__send_heartbeat__()
                 last_heartbeat = time.time()
@@ -240,6 +242,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def on_event(self, event, payload):
         if event.startswith("Print"):
+            breadcrumbs.record(message="Event handler for: " + self.config['token'])
             if hasattr(self, 'ss') and self.ss.connected():
                 self.__send_octoprint_data__()
 

@@ -5,17 +5,18 @@ import time
 import logging
 import StringIO
 import re
-import urllib2
+import urllib3
 from urlparse import urlparse
 import backoff
 from contextlib import closing
 import requests
+from raven import breadcrumbs
 
 _logger = logging.getLogger(__name__)
 
-@backoff.on_exception(backoff.expo, Exception, max_value=180)
-@backoff.on_predicate(backoff.fibo, max_value=60)
-def stream_up(stream_host, token, printer, remote_status, settings):
+@backoff.on_exception(backoff.expo, Exception, max_value=1200)
+@backoff.on_predicate(backoff.expo, max_value=1200)
+def stream_up(stream_host, token, printer, remote_status, settings, sentryClient):
     class UpStream:
         def __init__(self, printer, settings):
              self.settings = settings
@@ -53,9 +54,15 @@ def stream_up(stream_host, token, printer, remote_status, settings):
             else:
                 raise StopIteration()  # End connection so that `requests.post` can process server response
 
-    while True:
-        stream = UpStream(printer, settings)
-        res = requests.post(stream_host + "/video", data=stream, headers={"Authorization": "Bearer " + token}).raise_for_status()
+    try:
+        while True:
+            breadcrumbs.record(message="New UpStream: " + token)
+            stream = UpStream(printer, settings)
+            requests.post(stream_host + "/video", data=stream, headers={"Authorization": "Bearer " + token}).raise_for_status()
+    except Exception as e:
+        if not isinstance(e, urllib3.exceptions.NewConnectionError):
+            sentryClient.captureException()
+        return False
 
 
 def capture_mjpeg(settings):
@@ -64,7 +71,7 @@ def capture_mjpeg(settings):
         if not urlparse(snapshot_url).scheme:
             snapshot_url = "http://localhost/" + re.sub(r"^\/", "", snapshot_url)
 
-        with closing(urllib2.urlopen(snapshot_url)) as res:
+        with closing(urllib3.urlopen(snapshot_url)) as res:
             jpg = res.read()
             return "--boundarydonotcross\r\nContent-Type: image/jpeg\r\nContent-Length: {0}\r\n\r\n{1}\r\n".format(len(jpg), jpg)
 
@@ -73,7 +80,7 @@ def capture_mjpeg(settings):
         if not urlparse(stream_url).scheme:
             stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
 
-        with closing(urllib2.urlopen(stream_url)) as res:
+        with closing(urllib3.urlopen(stream_url)) as res:
             chunker = MjpegStreamChunker()
 
             while True:
