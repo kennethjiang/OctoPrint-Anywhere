@@ -5,6 +5,7 @@ import time
 import logging
 import StringIO
 import re
+import urllib2
 import urllib3
 from urlparse import urlparse
 import backoff
@@ -72,7 +73,7 @@ def capture_mjpeg(settings):
         if not urlparse(snapshot_url).scheme:
             snapshot_url = "http://localhost/" + re.sub(r"^\/", "", snapshot_url)
 
-        with closing(urllib3.urlopen(snapshot_url)) as res:
+        with closing(urllib2.urlopen(snapshot_url)) as res:
             jpg = res.read()
             return "--boundarydonotcross\r\nContent-Type: image/jpeg\r\nContent-Length: {0}\r\n\r\n{1}\r\n".format(len(jpg), jpg)
 
@@ -81,7 +82,7 @@ def capture_mjpeg(settings):
         if not urlparse(stream_url).scheme:
             stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
 
-        with closing(urllib3.urlopen(stream_url)) as res:
+        with closing(urllib2.urlopen(stream_url)) as res:
             chunker = MjpegStreamChunker()
 
             while True:
