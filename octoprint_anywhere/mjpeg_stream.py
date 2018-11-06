@@ -49,7 +49,8 @@ def stream_up(stream_host, token, printer, remote_status, settings, sentryClient
 
                     self.last_frame_ts = datetime.now()
                     return capture_mjpeg(self.settings)
-                except Empty:
+                except:
+                    sentryClient.captureException()
                     raise StopIteration()
             else:
                 raise StopIteration()  # End connection so that `requests.post` can process server response
