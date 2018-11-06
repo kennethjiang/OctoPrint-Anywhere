@@ -40,7 +40,6 @@ class Config:
             with open(self.config_path, 'r') as stream:
                 config_str = stream.read()
 
-                breadcrumbs.record(message="config path: " + self.config_path)
                 breadcrumbs.record(message="Config file content: " + config_str)
 
                 with self._mutex:
