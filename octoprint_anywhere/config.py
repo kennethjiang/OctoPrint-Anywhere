@@ -16,13 +16,9 @@ class Config:
                 release=plugin._plugin_version
                 )
 
-        try:
-            self.config_path = plugin.get_plugin_data_folder() + "/.config.yaml"
-            self._logger = logging.getLogger(__name__)
-            self.load_config()
-        except:
-            self.sentry.captureException()
-            import traceback; traceback.print_exc()
+        self.config_path = plugin.get_plugin_data_folder() + "/.config.yaml"
+        self._logger = logging.getLogger(__name__)
+        self.load_config()
 
     def __getitem__(self, key):
         with self._mutex:
