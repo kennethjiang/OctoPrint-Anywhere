@@ -204,10 +204,15 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             except:
                 time.sleep(5)
 
-    def __send_octoprint_data__(self):
+    def __send_octoprint_data__(self, event_type=None, event_payload=None):
         try:
             data = self._printer.get_current_data()
             data['temps'] = self._printer.get_current_temperatures()
+            data['origin'] = 'octoprint'
+            if event_type:
+                data['type'] = event_type
+                data['payload'] = event_payload
+
             self.ss.send_text(json.dumps(data))
         except:
             self.config.sentry.captureException()
@@ -244,7 +249,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         if event.startswith("Print"):
             breadcrumbs.record(message="Event handler for: " + self.config['token'])
             if hasattr(self, 'ss') and self.ss.connected():
-                self.__send_octoprint_data__()
+                self.__send_octoprint_data__(event, payload)
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
