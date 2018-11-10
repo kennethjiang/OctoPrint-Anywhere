@@ -94,15 +94,14 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def on_after_startup(self):
+        self.config = Config(self)
         try:
-            self.config = Config(self)
             self.op_info = self.__gather_op_info__()
             self.remote_status = RemoteStatus()
 
             main_thread = threading.Thread(target=self.__start_server_connections__)
             main_thread.daemon = True
             main_thread.start()
-
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
