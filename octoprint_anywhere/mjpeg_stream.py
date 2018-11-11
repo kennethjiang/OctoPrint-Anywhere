@@ -64,7 +64,7 @@ def stream_up(stream_host, token, printer, remote_status, settings, sentryClient
             stream = UpStream(printer, settings)
             requests.post(stream_host + "/video", data=stream, headers={"Authorization": "Bearer " + token}).raise_for_status()
     except Exception as e:
-        if not isinstance(e, urllib3.exceptions.NewConnectionError):
+        if not isinstance(e, urllib3.exceptions.HTTPError):
             sentryClient.captureException()
         return False
 
