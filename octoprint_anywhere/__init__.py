@@ -9,7 +9,6 @@ import logging
 import os
 import threading
 from Queue import Queue
-import backoff
 import requests
 from raven import breadcrumbs
 
@@ -18,7 +17,7 @@ from .timelapse import upload_timelapses
 from .server_ws import ServerSocket
 from .config import Config
 from .remote_status import RemoteStatus
-from .utils import ip_addr
+from .utils import ip_addr, ExpoBackoff
 
 class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.AssetPlugin,
@@ -128,28 +127,31 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
 
-    @backoff.on_exception(backoff.expo, Exception, max_value=1200)
-    @backoff.on_predicate(backoff.expo, max_value=1200)
     def __message_loop__(self):
         last_heartbeat = 0
 
-        self.__connect_server_ws__()
-        time.sleep(2)  # Allow the time for server ws to connect
-        while self.ss.connected():
-            breadcrumbs.record(message="Message loop for: " + self.config['token'])
-            if time.time() - last_heartbeat > 60:
-                self.__send_heartbeat__()
-                last_heartbeat = time.time()
+        backoff = ExpoBackoff(1200)
+        while True:
+            try:
 
-            self.__send_octoprint_data__()
-            time.sleep(10)
+                self.__connect_server_ws__()
+                time.sleep(2)  # Allow the time for server ws to connect
+                while self.ss.connected():
+                    breadcrumbs.record(message="Message loop for: " + self.config['token'])
+                    if time.time() - last_heartbeat > 60:
+                        self.__send_heartbeat__()
+                        last_heartbeat = time.time()
 
-        try:
-            self.ss.close()
-        except:
-            pass
+                    self.__send_octoprint_data__()
+                    backoff.reset()
+                    time.sleep(10)
 
-        return False
+            finally:
+                try:
+                    self.ss.close()
+                except:
+                    pass
+                backoff.more()   # When it gets here something is wrong. probably network issues. Pause before retry
 
     def __connect_server_ws__(self):
         self.ss = ServerSocket(self.config['ws_host'] + "/app/ws/device", self.config['token'], on_message=self.__on_server_ws_msg__)

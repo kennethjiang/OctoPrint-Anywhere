@@ -1,5 +1,7 @@
 # coding=utf-8
 from __future__ import absolute_import
+import time
+import random
 
 def ip_addr():
     ip_addresses = []
@@ -24,3 +26,21 @@ def ip_addr():
         ip_addresses.append(primary_ip)
 
     return ip_addresses
+
+
+class ExpoBackoff:
+
+    def __init__(self, max_seconds):
+        self.attempts = -3
+        self.max_seconds = max_seconds
+
+    def reset(self):
+        self.attempts = -3
+
+    def more(self):
+        self.attempts += 1
+        delay = 2 ** self.attempts
+        if delay > self.max_seconds:
+            delay = self.max_seconds
+        delay *= 0.5 + random.random()
+        time.sleep(delay)

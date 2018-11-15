@@ -8,16 +8,15 @@ import re
 import urllib2
 import urllib3
 from urlparse import urlparse
-import backoff
 from contextlib import closing
 import requests
 from raven import breadcrumbs
+from .utils import ExpoBackoff
 
 _logger = logging.getLogger(__name__)
 
-@backoff.on_exception(backoff.expo, Exception, max_value=1200)
-@backoff.on_predicate(backoff.expo, max_value=1200)
-def stream_up(stream_host, token, printer, remote_status, settings, sentryClient):
+def stream_up(stream_host, token, printer, remote_status, settings, sentryClient):  # This method is a "wrapper" sot h
+
     class UpStream:
         def __init__(self, printer, settings):
              self.settings = settings
@@ -58,17 +57,16 @@ def stream_up(stream_host, token, printer, remote_status, settings, sentryClient
             else:
                 raise StopIteration()  # End connection so that `requests.post` can process server response
 
-    try:
-        while True:
+    backoff = ExpoBackoff(1200)
+    while True:
+        try:
             breadcrumbs.record(message="New UpStream: " + token)
             stream = UpStream(printer, settings)
-            try:
-                requests.post(stream_host + "/video", data=stream, headers={"Authorization": "Bearer " + token}).raise_for_status()
-            except:
-                return False
-    except Exception as e:
-        sentryClient.captureException()
-        return False
+            requests.post(stream_host + "/video", data=stream, headers={"Authorization": "Bearer " + token}).raise_for_status()
+            backoff.reset()
+        except Exception, e:
+            _logger.error(e)
+            backoff.more()
 
 
 def capture_mjpeg(settings):

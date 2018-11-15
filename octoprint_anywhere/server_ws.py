@@ -5,7 +5,7 @@ import websocket
 
 class ServerSocket:
     def on_error(self, ws, error):
-        print(error)
+        pass
 
     def __init__(self, url, token, on_message):
         #websocket.enableTrace(True)
