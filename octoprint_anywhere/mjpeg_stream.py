@@ -51,6 +51,8 @@ def stream_up(stream_host, token, printer, remote_status, settings, sentryClient
                     return capture_mjpeg(self.settings)
                 except urllib2.URLError:    # Caused by an invalid snapshot/stream url configuration. Expected for some users.
                     raise StopIteration()
+                except httplib.BadStatusLine:    # Happened to some users too
+                    raise StopIteration()
                 except Exception as e:
                     sentryClient.captureException()
                     raise StopIteration()
