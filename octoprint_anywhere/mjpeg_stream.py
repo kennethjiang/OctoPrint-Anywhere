@@ -6,11 +6,11 @@ import logging
 import StringIO
 import re
 import urllib2
-import urllib3
 from urlparse import urlparse
 from contextlib import closing
 import requests
 from raven import breadcrumbs
+import backoff
 from .utils import ExpoBackoff
 
 _logger = logging.getLogger(__name__)
@@ -49,11 +49,7 @@ def stream_up(stream_host, token, printer, remote_status, settings, sentryClient
 
                     self.last_frame_ts = datetime.now()
                     return capture_mjpeg(self.settings)
-                except urllib2.URLError:    # Caused by an invalid snapshot/stream url configuration. Expected for some users.
-                    raise StopIteration()
-                except httplib.BadStatusLine:    # Happened to some users too
-                    raise StopIteration()
-                except Exception as e:
+                except:
                     sentryClient.captureException()
                     raise StopIteration()
             else:
@@ -71,6 +67,8 @@ def stream_up(stream_host, token, printer, remote_status, settings, sentryClient
             backoff.more()
 
 
+@backoff.on_exception(backoff.expo, Exception, max_value=1200)
+@backoff.on_predicate(backoff.expo, max_value=1200)
 def capture_mjpeg(settings):
     snapshot_url = settings.get("snapshot", '').strip()
     if snapshot_url:
