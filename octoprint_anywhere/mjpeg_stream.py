@@ -70,7 +70,7 @@ def stream_up(stream_host, token, printer, remote_status, settings, sentryClient
 
 
 def capture_mjpeg(settings):
-    snapshot_url = settings.get("snapshot", None).strip()
+    snapshot_url = settings.get("snapshot", '').strip()
     if snapshot_url:
         if not urlparse(snapshot_url).scheme:
             snapshot_url = "http://localhost/" + re.sub(r"^\/", "", snapshot_url)
