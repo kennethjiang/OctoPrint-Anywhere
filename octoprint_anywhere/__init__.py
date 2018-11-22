@@ -200,7 +200,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     def __probe_auth_token__(self):
         while True:
             try:
-                requests.get(self.config['api_host'] + "/api/ping", headers={"Authorization": "Bearer " + self.config['token']}).raise_for_status()
+                requests.get(self.config['stream_host'] + "/api/ping", headers={"Authorization": "Bearer " + self.config['token']}).raise_for_status()
                 return
             except:
                 time.sleep(5)
