@@ -248,8 +248,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def on_event(self, event, payload):
         if event.startswith("Print"):
-            breadcrumbs.record(message="Event handler for: " + self.config['token'])
             if hasattr(self, 'ss') and self.ss.connected():
+                breadcrumbs.record(message="Event handler for: " + self.config['token'])
                 self.__send_octoprint_data__(event, payload)
 
 
