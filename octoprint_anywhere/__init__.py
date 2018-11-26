@@ -137,6 +137,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 self.__connect_server_ws__()
                 time.sleep(2)  # Allow the time for server ws to connect
                 while self.ss.connected():
+                    print("WS connected!")
                     breadcrumbs.record(message="Message loop for: " + self.config['token'])
                     if time.time() - last_heartbeat > 60:
                         self.__send_heartbeat__()
@@ -151,6 +152,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                     self.ss.close()
                 except:
                     pass
+                print("Back off more for WS")
                 backoff.more()   # When it gets here something is wrong. probably network issues. Pause before retry
 
     def __connect_server_ws__(self):
@@ -214,7 +216,9 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 data['type'] = event_type
                 data['payload'] = event_payload
 
+            print("sending " + json.dumps(data))
             self.ss.send_text(json.dumps(data))
+            print("sent")
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
