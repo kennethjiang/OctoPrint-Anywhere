@@ -9,62 +9,79 @@ import urllib2
 from urlparse import urlparse
 from contextlib import closing
 import requests
+import threading
 from raven import breadcrumbs
 import backoff
 from .utils import ExpoBackoff
 
 _logger = logging.getLogger(__name__)
 
-def stream_up(stream_host, token, printer, remote_status, settings, sentryClient):  # This method is a "wrapper" sot h
+class MjpegStream:
 
-    class UpStream:
-        def __init__(self, printer, settings):
-             self.settings = settings
-             self.last_reconnect_ts = datetime.now()
-             self.printer = printer
-             self.remote_status = remote_status
-             self.last_frame_ts = datetime.min
+    def __init__(self):
+        self._mutex = threading.RLock()
+        self._should_quit = False
 
-        def __iter__(self):
-            return self
+    def quit(self):
+        with self._mutex:
+            self._should_quit = True
 
-        def seconds_remaining_until_next_cycle(self):
-            cycle_in_seconds = 1.0/3.0 # Limit the bandwidth consumption to 3 frames/second
-            if not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:  # Printer idle
-                if self.remote_status['watching']:
-                    cycle_in_seconds = 2
+    def should_quit(self):
+        with self._mutex:
+            return self._should_quit
+
+    def stream_up(self, stream_host, token, printer, remote_status, settings, sentryClient):
+
+        class UpStream:
+            def __init__(self, printer, settings):
+                 self.settings = settings
+                 self.last_reconnect_ts = datetime.now()
+                 self.printer = printer
+                 self.remote_status = remote_status
+                 self.last_frame_ts = datetime.min
+
+            def __iter__(self):
+                return self
+
+            def seconds_remaining_until_next_cycle(self):
+                cycle_in_seconds = 1.0/3.0 # Limit the bandwidth consumption to 3 frames/second
+                if not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:  # Printer idle
+                    if self.remote_status['watching']:
+                        cycle_in_seconds = 2
+                    else:
+                        cycle_in_seconds = 20
                 else:
-                    cycle_in_seconds = 20
-            else:
-                if not self.remote_status['watching']:
-                    cycle_in_seconds = 10
-            return cycle_in_seconds-(datetime.now() - self.last_frame_ts).total_seconds()
+                    if not self.remote_status['watching']:
+                        cycle_in_seconds = 10
+                return cycle_in_seconds-(datetime.now() - self.last_frame_ts).total_seconds()
 
 
-        def next(self):
-            if (datetime.now() - self.last_reconnect_ts).total_seconds() < 60: # Allow connection to last up to 60s
-                try:
-                    while self.seconds_remaining_until_next_cycle() > 0:
-                        time.sleep(0.1)
+            def next(self):
+                if (datetime.now() - self.last_reconnect_ts).total_seconds() < 60: # Allow connection to last up to 60s
+                    try:
+                        while self.seconds_remaining_until_next_cycle() > 0:
+                            time.sleep(0.1)
 
-                    self.last_frame_ts = datetime.now()
-                    return capture_mjpeg(self.settings)
-                except:
-                    sentryClient.captureException()
-                    raise StopIteration()
-            else:
-                raise StopIteration()  # End connection so that `requests.post` can process server response
+                        self.last_frame_ts = datetime.now()
+                        return capture_mjpeg(self.settings)
+                    except:
+                        sentryClient.captureException()
+                        raise StopIteration()
+                else:
+                    raise StopIteration()  # End connection so that `requests.post` can process server response
 
-    backoff = ExpoBackoff(1200)
-    while True:
-        try:
-            breadcrumbs.record(message="New UpStream: " + token)
-            stream = UpStream(printer, settings)
-            requests.post(stream_host + "/video", data=stream, headers={"Authorization": "Bearer " + token}).raise_for_status()
-            backoff.reset()
-        except Exception, e:
-            _logger.error(e)
-            backoff.more()
+
+        backoff = ExpoBackoff(1200)
+
+        while not self.should_quit():
+            try:
+                breadcrumbs.record(message="New UpStream: " + token)
+                stream = UpStream(printer, settings)
+                requests.post(stream_host + "/video", data=stream, headers={"Authorization": "Bearer " + token}).raise_for_status()
+                backoff.reset()
+            except Exception, e:
+                _logger.error(e)
+                backoff.more()
 
 
 @backoff.on_exception(backoff.expo, Exception, max_value=1200)

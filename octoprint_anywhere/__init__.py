@@ -8,11 +8,10 @@ import json
 import logging
 import os
 import threading
-from Queue import Queue
 import requests
 from raven import breadcrumbs
 
-from .mjpeg_stream import stream_up
+from .mjpeg_stream import MjpegStream
 from .timelapse import upload_timelapses
 from .server_ws import ServerSocket
 from .config import Config
@@ -114,7 +113,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
             stream_host = self.config['stream_host']
             token = self.config['token']
-            upstream_thread = threading.Thread(target=stream_up, args=(stream_host, token, self._printer, self.remote_status, self._settings.global_get(["webcam"]), self.config.sentry))
+            self.mjpeg_strm = MjpegStream()
+            upstream_thread = threading.Thread(target=self.mjpeg_strm.stream_up, args=(stream_host, token, self._printer, self.remote_status, self._settings.global_get(["webcam"]), self.config.sentry))
             upstream_thread.daemon = True
             upstream_thread.start()
 
