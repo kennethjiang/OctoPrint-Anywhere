@@ -5,6 +5,7 @@ import octoprint.plugin
 
 import os
 import threading
+import time
 import requests
 from raven import breadcrumbs
 
@@ -58,6 +59,10 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         if command == "reset_config":
             old_token = self.config['token']
             self.config.reset_config()
+
+            self.main_loop.quit()
+            self.start_main_thread()
+
             return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}&copy_from={2}".format(self.config['api_host'], self.config['token'], old_token), registered=self.config['registered'])
         elif command == "get_config":
             return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}".format(self.config['api_host'], self.config['token']), registered=self.config['registered'])
@@ -85,6 +90,20 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def on_after_startup(self):
         self.config = Config(self)
+        self.start_main_thread()
+
+
+    ##~~ Eventhandler mixin
+
+    def on_event(self, event, payload):
+        if event.startswith("Print"):
+            breadcrumbs.record(message="Event handler for: " + self.config['token'])
+            self.main_loop.send_octoprint_data(event, payload)
+
+
+    ## Internal functions
+
+    def start_main_thread(self):
         try:
             main_thread = threading.Thread(target=self.__run_message_loop__)
             main_thread.daemon = True
@@ -93,23 +112,14 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
 
-
-    ##~~ Eventhandler mixin
-
-    def on_event(self, event, payload):
-        if event.startswith("Print"):
-            breadcrumbs.record(message="Event handler for: " + self.config['token'])
-            self.message_loop.send_octoprint_data(event, payload)
-
-    ## Internal functions
     def __run_message_loop__(self):
         # Forever loop to block other server calls if token is registered with server
         if (not self.config['registered']):
             self.__probe_auth_token__()
             self.config['registered'] = True
 
-        self.message_loop = MessageLoop(self.config, self._printer, self._settings, self._plugin_version, self._plugin_manager)
-        self.message_loop.run_until_quit()
+        self.main_loop = MessageLoop(self.config, self._printer, self._settings, self._plugin_version, self._plugin_manager)
+        self.main_loop.run_until_quit()
 
     def __probe_auth_token__(self):
         while True:
