@@ -19,10 +19,12 @@ class ServerSocket:
         self.ws.run_forever()
 
     def send_text(self, data):
-        self.ws.send(data)
+        if self.connected():
+            self.ws.send(data)
 
     def connected(self):
         return self.ws.sock and self.ws.sock.connected
 
     def disconnect(self):
+        self.ws.keep_running = False;
         self.ws.close()
