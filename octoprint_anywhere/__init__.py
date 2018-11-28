@@ -12,7 +12,7 @@ import requests
 from raven import breadcrumbs
 
 from .mjpeg_stream import MjpegStream
-from .timelapse import upload_timelapses
+from .timelapse import Timelapse
 from .server_ws import ServerSocket
 from .config import Config
 from .remote_status import RemoteStatus
@@ -25,6 +25,11 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.StartupPlugin,
                      octoprint.plugin.SimpleApiPlugin,
                      octoprint.plugin.WizardPlugin,):
+
+    def __init__(self):
+        self.ss = None
+        self.mjpeg_strm = None
+        self.timelapse_uploader = None
 
     ##~~ AssetPlugin mixin
     def get_assets(self):
@@ -65,7 +70,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         if command == "reset_config":
             old_token = self.config['token']
             self.config.reset_config()
-            self.ss.disconnect()   # Server WS connection needs to be reset to pick up new token
             return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}&copy_from={2}".format(self.config['api_host'], self.config['token'], old_token), registered=self.config['registered'])
         elif command == "get_config":
             return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}".format(self.config['api_host'], self.config['token']), registered=self.config['registered'])
@@ -104,8 +108,16 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
 
+
     def __start_server_connections__(self):
         try:
+            if self.ss and self.ss.connected():
+                self.ss.disconnect()
+            if self.mjpeg_strm:
+                self.mjpeg_strm.quit()
+            if self.timelapse_uploader:
+                self.timelapse_uploader.quit()
+
             # Forever loop to block other server calls if token is registered with server
             if (not self.config['registered']):
                 self.__probe_auth_token__()
@@ -118,7 +130,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             upstream_thread.daemon = True
             upstream_thread.start()
 
-            timelapse_upload_thread = threading.Thread(target=upload_timelapses, args=(stream_host, token, self._settings.settings.getBaseFolder("timelapse")))
+            self.timelapse_uploader = Timelapse()
+            timelapse_upload_thread = threading.Thread(target=self.timelapse_uploader.upload_timelapses, args=(stream_host, token, self._settings.settings.getBaseFolder("timelapse")))
             timelapse_upload_thread.daemon = True
             timelapse_upload_thread.start()
 
@@ -248,7 +261,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def on_event(self, event, payload):
         if event.startswith("Print"):
-            if hasattr(self, 'ss') and self.ss.connected():
+            if self.ss and self.ss.connected():
                 breadcrumbs.record(message="Event handler for: " + self.config['token'])
                 self.__send_octoprint_data__(event, payload)
 
