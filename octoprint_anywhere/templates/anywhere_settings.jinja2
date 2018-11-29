@@ -1,9 +1,8 @@
 <div data-bind="visible: registered() || tokenReset()">
-    <h4>Hurrah! 3D printer already registered. Nothing to do here.</h4>
-    <p><a href="https://www.getanywhere.io/app/devices">Go to OctoPrint Anywhere dashboard.</a></p>
+    <p>Hurrah! 3D printer already registered. Nothing to do here. Go to <a target="blank" href="https://www.getanywhere.io/app/devices">getanywhere.io <i class="fa fa-external-link" aria-hidden="true"></i></a></p>
 
-    <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Not seeing your 3D printer in getanywhere.io?</a></small></div>
-    <div class="hide">
+    <div><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i> Not seeing your 3D printer in getanywhere.io?</a></div>
+    <div class="hide" style="background: #ddd; padding: 12px 12px 12px 24px;">
         <p>Most likely it is caused by one of the following reasons:</p>
         <ul>
             <li>You logged in with a different account than the one your 3D printer was linked to. If that's the case, log out of OctoPrint Anywhere dashboard and log in with the proper account.</li>
@@ -13,10 +12,13 @@
         <div class="row-fluid">
             <div class="span5">
                     Step 1:
-                    <button class="btn btn-primary" data-bind="click: resetButtonClicked">
+                    <button class="btn" data-bind="click: resetButtonClicked, disable: tokenReset(), css: { 'btn-primary': !tokenReset() }">
                         <i class="icon-spinner icon-spin" data-bind="visible: sending"></i>
                         Reset account
                     </button>
+            </div>
+            <div class="span2">
+                <i class="fa fa-2x fa-long-arrow-right" aria-hidden="true"></i>
             </div>
             <div class="span5">
                     Step 2:
@@ -28,25 +30,25 @@
                     <!-- /ko -->
             </div>
         </div>
-        <p>If it still does not work, please <a href="mailto:support@getanywhere.io">report a bug</a>.</p>
+        <p style="margin-top: 16px;">If it still does not work, please <a href="mailto:support@getanywhere.io">report a bug</a>.</p>
     </div>
-    <div class='muted'><small>Something else is wrong? Check the <a href='http://www.getanywhere.io/pub/faqs'>help page</a>.</small></div>
+    <p class='muted' style="margin-top: 8px;">Something else is wrong? Check the <a href='http://www.getanywhere.io/pub/faqs'>help page</a>.</p>
 </div>
 <div data-bind="visible: !registered() && !tokenReset()">
     <a class="btn btn-primary" data-bind="attr: {href: regUrl()}" target="blank">Register my 3D printer on getanywhere.io</a>
 
-    <div><small><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i>Having difficulties registering?</a></small></div>
+    <div><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i> Having difficulties registering?</a></div>
     <div class="hide">
       <ul>
         <li>Make sure your browser, as well as Raspberry Pi, are both connected to internet.</li>
         <li>Open a new browser window and copy this link to the address bar: <code data-bind="text: regUrl()"></code></li>
-        <li>If it still does not work, please <a href="https://goo.gl/forms/bwseL3eo9G4Ra8jp2">report a bug</a>.</li>
+        <li>If it still does not work, please <a href="mailto:support@getanywhere.io">report a bug</a>.</li>
       </ul>
     </div>
 </div>
 
 <h4>About OctoPrint Anywhere</h4>
-<p>Remote monitoring and control for your 3D printer from ANYWHERE, ON YOUR PHONE.</p>
+<p>Remote monitoring and control for 3D printer from ANYWHERE, ON YOUR PHONE.</p>
 <iframe width="616" height="346" src="https://www.youtube.com/embed/yuMUJ5NdPAI" frameborder="0" allowfullscreen></iframe>
 
 <h4>Privacy Disclaimer</h4>
