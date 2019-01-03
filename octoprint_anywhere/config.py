@@ -36,6 +36,10 @@ class Config:
     def load_config(self):
         import os.path
 
+        if not os.path.exists(self.config_path):
+            self.reset_config()
+            return
+
         try:
             with open(self.config_path, 'r') as stream:
                 config_str = stream.read()
