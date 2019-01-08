@@ -96,6 +96,10 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     ##~~ Eventhandler mixin
 
     def on_event(self, event, payload):
+        # Event may be triggered before object is properly initialized
+        if not hasattr(self, 'main_loop') or not hasattr(self, 'config') or not self.config['registered']:
+            return
+
         if event.startswith("Print"):
             self.main_loop.send_octoprint_data(event, payload)
 
