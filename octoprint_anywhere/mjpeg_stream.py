@@ -87,7 +87,8 @@ class MjpegStream:
 @backoff.on_exception(backoff.expo, Exception, max_value=1200)
 @backoff.on_predicate(backoff.expo, max_value=1200)
 def capture_mjpeg(settings):
-    snapshot_url = settings.get("snapshot", '').strip()
+    snapshot_url = settings.get("snapshot").strip()
+    stream_url = settings.get("stream").strip()
     if snapshot_url:
         if not urlparse(snapshot_url).scheme:
             snapshot_url = "http://localhost/" + re.sub(r"^\/", "", snapshot_url)
@@ -96,8 +97,7 @@ def capture_mjpeg(settings):
             jpg = res.read()
             return "--boundarydonotcross\r\nContent-Type: image/jpeg\r\nContent-Length: {0}\r\n\r\n{1}\r\n".format(len(jpg), jpg)
 
-    else:
-        stream_url = settings.get("stream", "/webcam/?action=stream").strip()
+    elif stream_url:
         if not urlparse(stream_url).scheme:
             stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
 
