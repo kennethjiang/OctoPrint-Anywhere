@@ -1,12 +1,15 @@
 import io
 import subprocess
 import time
+import flask
 from collections import deque
 from threading import Thread
 import picamera
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import requests
+
+CAM_SERVER_PORT = 56720
 
 class TSWatcher(FileSystemEventHandler):
 
@@ -32,10 +35,31 @@ class H264Streamer:
 
     def __init__(self):
         self.ts_q = deque([], 24)
+        self.camera = picamera.PiCamera(framerate=25, resolution=(640, 480))
+        self.camera.start_preview()
+
+    def capture_image(self):
+        output = io.BytesIO()
+        self.camera.capture(output, format='jpeg', use_video_port=True)
+        return output
 
     def start_hls_pipeline(self, token, remote_status):
-        camera = picamera.PiCamera(framerate=25)
-        camera.resolution = (640, 480)
+
+        webcam_server_app = flask.Flask('webcam_server')
+
+        @webcam_server_app.route('/octoprint_anywhere/webcam')
+        def get_webcam_feed():
+            output = self.capture_image()
+            output.seek(0)
+            return flask.send_file(output, mimetype='image/jpg')
+
+        def start_server():
+            print('kkk starting server')
+            webcam_server_app.run(host='0.0.0.0', port=CAM_SERVER_PORT, threaded=True)
+
+        cam_server_thread = Thread(target=start_server)
+        cam_server_thread.daemon = True
+        cam_server_thread.start()
 
         event_handler = TSWatcher(token, self.ts_q)
         observer = Observer()
@@ -49,14 +73,13 @@ class H264Streamer:
         x.start()
         #exhaust_m3u8(sub_proc, ts_q)
 
-        camera.start_preview()
         while True:
             if remote_status['watching']:
-                camera.start_recording(sub_proc.stdin, format='h264', quality=23)
+                self.camera.start_recording(sub_proc.stdin, format='h264', quality=23)
                 while remote_status['watching']:
-                    camera.wait_recording(2)
-                camera.stop_recording()
-                camera.start_preview()
+                    self.camera.wait_recording(2)
+                self.camera.stop_recording()
+                self.camera.start_preview()
             else:
                 time.sleep(0.5)
 
