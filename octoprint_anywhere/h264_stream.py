@@ -30,6 +30,49 @@ class TSWatcher(FileSystemEventHandler):
             import sys, traceback
             traceback.print_exc(file=sys.stdout)
 
+class WebcamServer:
+    def __init__(self, camera):
+        self.camera = camera
+
+    def capture_image(self):
+        output = io.BytesIO()
+        self.camera.capture(output, format='jpeg')
+        return output
+
+    def mjpeg_generator(self, boundary):
+        hdr = '--%s\r\nContent-Type: image/jpeg\r\n' % boundary
+        bio = io.BytesIO()
+
+        prefix = ''
+        for chunk in self.camera.capture_continuous(bio, format='jpeg', use_video_port=True):
+            bio.seek(0)
+            f = bio.read()
+            msg = prefix + hdr + 'Content-Length: %d\r\n\r\n' % len(f)
+            yield msg.encode('utf-8') + f
+            prefix = '\r\n'
+            time.sleep(0.1)
+
+    def run_forever(self):    
+        webcam_server_app = flask.Flask('webcam_server')
+
+        @webcam_server_app.route('/octoprint_anywhere/snapshot')
+        def get_snapshot():
+            output = self.capture_image()
+            output.seek(0)
+            return flask.send_file(output, mimetype='image/jpg')
+
+        @webcam_server_app.route('/octoprint_anywhere/mjpeg')
+        def get_mjpeg():
+            boundary='herebedragons'
+            return flask.Response(self.mjpeg_generator(boundary), mimetype='multipart/x-mixed-replace;boundary=%s' % boundary)
+
+        webcam_server_app.run(host='0.0.0.0', port=CAM_SERVER_PORT, threaded=True)
+
+    def start(self):
+        cam_server_thread = Thread(target=self.run_forever)
+        cam_server_thread.daemon = True
+        cam_server_thread.start()
+
 
 class H264Streamer:
 
@@ -38,28 +81,10 @@ class H264Streamer:
         self.camera = picamera.PiCamera(framerate=25, resolution=(640, 480))
         self.camera.start_preview()
 
-    def capture_image(self):
-        output = io.BytesIO()
-        self.camera.capture(output, format='jpeg', use_video_port=True)
-        return output
-
     def start_hls_pipeline(self, token, remote_status):
 
-        webcam_server_app = flask.Flask('webcam_server')
-
-        @webcam_server_app.route('/octoprint_anywhere/webcam')
-        def get_webcam_feed():
-            output = self.capture_image()
-            output.seek(0)
-            return flask.send_file(output, mimetype='image/jpg')
-
-        def start_server():
-            print('kkk starting server')
-            webcam_server_app.run(host='0.0.0.0', port=CAM_SERVER_PORT, threaded=True)
-
-        cam_server_thread = Thread(target=start_server)
-        cam_server_thread.daemon = True
-        cam_server_thread.start()
+        self.webcam_server = WebcamServer(self.camera)
+        self.webcam_server.start()
 
         event_handler = TSWatcher(token, self.ts_q)
         observer = Observer()
