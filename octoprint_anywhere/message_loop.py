@@ -8,6 +8,7 @@ import json
 from raven import breadcrumbs
 
 from .mjpeg_stream import MjpegStream
+from .h264_stream import H264Streamer
 from .timelapse import Timelapse
 from .server_ws import ServerSocket
 from .remote_status import RemoteStatus
@@ -50,10 +51,13 @@ class MessageLoop:
 
             stream_host = self.config['stream_host']
             token = self.config['token']
-            self.mjpeg_strm = MjpegStream()
-            upstream_thread = threading.Thread(target=self.mjpeg_strm.stream_up, args=(stream_host, token, self._printer, self.remote_status, self._settings.global_get(["webcam"]), self.config.sentry))
+            #self.mjpeg_strm = MjpegStream()
+            self.mjpeg_strm = H264Streamer()
+            upstream_thread = threading.Thread(target=self.mjpeg_strm.start_hls_pipeline, args=(token, self.remote_status))
+            #upstream_thread = threading.Thread(target=self.mjpeg_strm.stream_up, args=(stream_host, token, self._printer, self.remote_status, self._settings.global_get(["webcam"]), self.config.sentry))
             upstream_thread.daemon = True
             upstream_thread.start()
+
 
             self.timelapse_uploader = Timelapse()
             timelapse_upload_thread = threading.Thread(target=self.timelapse_uploader.upload_timelapses, args=(stream_host, token, self._settings.settings.getBaseFolder("timelapse")))
