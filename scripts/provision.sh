@@ -13,7 +13,7 @@ sudo add-apt-repository -y ppa:jonathonf/ffmpeg-4
 sudo apt-get update
 sudo apt-get -y install build-essential ffmpeg
 sudo apt-get -y install cmake libjpeg8-dev
-sudo apt-get -y --no-install-recommends install imagemagick libav-tools libv4l-dev
+sudo apt-get -y --no-install-recommends install imagemagick libv4l-dev
 
 cd /
 if [ ! -d mjpg-streamer ]; then
