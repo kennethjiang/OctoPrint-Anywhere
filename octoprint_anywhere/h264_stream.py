@@ -40,17 +40,20 @@ class WebcamServer:
         return output
 
     def mjpeg_generator(self, boundary):
+      try:
         hdr = '--%s\r\nContent-Type: image/jpeg\r\n' % boundary
         bio = io.BytesIO()
 
         prefix = ''
-        for chunk in self.camera.capture_continuous(bio, format='jpeg', use_video_port=True):
+        for foo in self.camera.capture_continuous(bio, format='jpeg', use_video_port=True):
+            msg = prefix + hdr + 'Content-Length: %d\r\n\r\n'.format(bio.tell())
             bio.seek(0)
-            f = bio.read()
-            msg = prefix + hdr + 'Content-Length: %d\r\n\r\n' % len(f)
-            yield msg.encode('utf-8') + f
+            yield msg.encode('utf-8') + bio.read()
+            bio.seek(0)
+            bio.truncate()
             prefix = '\r\n'
-            time.sleep(0.1)
+      except GeneratorExit:
+         print('closed')
 
     def run_forever(self):    
         webcam_server_app = flask.Flask('webcam_server')
@@ -64,7 +67,7 @@ class WebcamServer:
         @webcam_server_app.route('/octoprint_anywhere/mjpeg')
         def get_mjpeg():
             boundary='herebedragons'
-            return flask.Response(self.mjpeg_generator(boundary), mimetype='multipart/x-mixed-replace;boundary=%s' % boundary)
+            return flask.Response(flask.stream_with_context(self.mjpeg_generator(boundary)), mimetype='multipart/x-mixed-replace;boundary=%s' % boundary)
 
         webcam_server_app.run(host='0.0.0.0', port=CAM_SERVER_PORT, threaded=True)
 
