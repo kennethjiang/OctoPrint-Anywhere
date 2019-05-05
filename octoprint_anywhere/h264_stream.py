@@ -69,7 +69,7 @@ class WebcamServer:
 
 class H264Streamer:
 
-    def __init__(self):
+    def __init__(self, webcam_conf):
         self.m3u8_q = deque([], 24)
 
         if not pi_version():
@@ -78,7 +78,12 @@ class H264Streamer:
             FFMPEG = 'ffmpeg'
         else:
             import picamera
-            self.camera = picamera.PiCamera(framerate=25, resolution=(640, 480))
+            self.camera = picamera.PiCamera()
+	    self.camera.framerate=25
+	    self.camera.resolution=(640, 480)
+	    self.camera.hflip=webcam_conf.get('flipH', False)
+	    self.camera.vflip=webcam_conf.get('flipV', False)
+	    self.camera.rotation=(90 if webcam_conf.get('rotate90', False) else 0)
 
         self.camera.start_preview()
 

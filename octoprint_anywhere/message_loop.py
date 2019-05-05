@@ -52,7 +52,7 @@ class MessageLoop:
             stream_host = self.config['stream_host']
             token = self.config['token']
             #self.mjpeg_strm = MjpegStream()
-            self.mjpeg_strm = H264Streamer()
+            self.mjpeg_strm = H264Streamer(self._settings.settings.effective['webcam'])
             upstream_thread = threading.Thread(target=self.mjpeg_strm.start_hls_pipeline, args=(stream_host, token, self.remote_status, self.config.sentry))
             #upstream_thread = threading.Thread(target=self.mjpeg_strm.stream_up, args=(stream_host, token, self._printer, self.remote_status, self._settings.global_get(["webcam"]), self.config.sentry))
             upstream_thread.daemon = True
