@@ -68,11 +68,13 @@ class WebcamServer:
 
 class TSWatcher(FileSystemEventHandler):
 
-    def __init__(self, ts_q, m3u8_q):
+    def __init__(self, m3u8_q, stream_host, token, sentryClient):
         super(TSWatcher, self).__init__()
-        self.ts_q = ts_q
         self.m3u8_q = m3u8_q
         self.last_10 = deque([], 10)
+        self.stream_host = stream_host
+        self.token = token
+        self.sentryClient = sentryClient
 
     def on_created(self, event):
         m3u8 = list(self.m3u8_q)
@@ -84,10 +86,15 @@ class TSWatcher(FileSystemEventHandler):
             return
         self.last_10.append(new_ts)
 
-        while not self.ts_q.empty():
-            self.ts_q.get_nowait()
+        self.upload_mpegts_to_server(os.path.join(TS_TEMP_DIR,new_ts), self.stream_host, self.token, self.sentryClient)
 
-        self.ts_q.put(os.path.join(TS_TEMP_DIR,new_ts))
+    def upload_mpegts_to_server(self, mpegts, stream_host, token, sentryClient):
+        try:
+            while True:
+              files = {'file': ('ts', open(mpegts), 'rb')}
+              requests.post(stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + token}).raise_for_status()
+        except:
+            sentryClient.captureException()
 
 
 class H264Streamer:
@@ -110,15 +117,10 @@ class H264Streamer:
         self.webcam_server = WebcamServer(self.camera)
         self.webcam_server.start()
 
-        ts_q = Queue.Queue()
-        event_handler = TSWatcher(ts_q, self.m3u8_q)
+        event_handler = TSWatcher(self.m3u8_q, stream_host, token, sentryClient)
         observer = Observer()
         observer.schedule(event_handler, TS_TEMP_DIR)
         observer.start()
-
-        upload_thread = Thread(target=self.upload_mpegts_to_server, args=(ts_q, stream_host, token, sentryClient,))
-        upload_thread.setDaemon(True)
-        upload_thread.start()
 
         sub_proc = subprocess.Popen('{} -re -i pipe:0 -y -an -vcodec copy -f hls -hls_time 2 -hls_list_size 10 -hls_delete_threshold 10 -hls_flags split_by_time+delete_segments+second_level_segment_index -strftime 1 -hls_segment_filename {}/%s-%%d.ts -hls_segment_type mpegts -'.format(FFMPEG, TS_TEMP_DIR).split(' '), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
@@ -139,19 +141,6 @@ class H264Streamer:
     def poll_m3u8(self, sub_proc):
         while True:
             self.m3u8_q.append(sub_proc.stdout.readline())
-
-    def upload_mpegts_to_server(self, ts_q, stream_host, token, sentryClient):
-        try:
-            while True:
-              mpegts = ts_q.get()
-              print(mpegts)
-              files = {'file': ('ts', open(mpegts), 'rb')}
-              requests.post(stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + token}).raise_for_status()
-              print('done' + mpegts)
-        except:
-            import sys, traceback
-            traceback.print_exc(file=sys.stdout)
-            #sentryClient.captureException()
 
 
 class StubCamera:
