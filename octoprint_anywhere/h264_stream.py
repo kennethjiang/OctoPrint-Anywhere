@@ -3,6 +3,7 @@ import os
 import subprocess
 import time
 import flask
+from collections import deque
 import Queue
 from threading import Thread
 from watchdog.observers import Observer
@@ -65,25 +66,35 @@ class WebcamServer:
         cam_server_thread.start()
 
 
-class TSWatcher(PatternMatchingEventHandler):
+class TSWatcher(FileSystemEventHandler):
 
-    def __init__(self, ts_q):
+    def __init__(self, ts_q, m3u8_q):
         super(TSWatcher, self).__init__()
         self.ts_q = ts_q
+        self.m3u8_q = m3u8_q
+        self.last_10 = deque([], 10)
 
     def on_created(self, event):
-        if not event.src_path.endswith('.ts'):
+        m3u8 = list(self.m3u8_q)
+        if len(m3u8) < 10:
             return
+
+        new_ts = m3u8[len(m3u8)-1].strip()
+        if new_ts in self.last_10:
+            return
+        self.last_10.append(new_ts)
 
         while not self.ts_q.empty():
             self.ts_q.get_nowait()
 
-        self.ts_q.put(event.src_path)
+        self.ts_q.put(os.path.join(TS_TEMP_DIR,new_ts))
 
 
 class H264Streamer:
 
     def __init__(self):
+        self.m3u8_q = deque([], 24)
+
         if not pi_version():
             self.camera = StubCamera()
             global FFMPEG
@@ -100,7 +111,7 @@ class H264Streamer:
         self.webcam_server.start()
 
         ts_q = Queue.Queue()
-        event_handler = TSWatcher(ts_q)
+        event_handler = TSWatcher(ts_q, self.m3u8_q)
         observer = Observer()
         observer.schedule(event_handler, TS_TEMP_DIR)
         observer.start()
@@ -109,7 +120,11 @@ class H264Streamer:
         upload_thread.setDaemon(True)
         upload_thread.start()
 
-        sub_proc = subprocess.Popen('{} -re -i pipe:0 -y -an -vcodec copy -f hls -hls_time 2 -hls_list_size 10 -hls_delete_threshold 10 -hls_flags split_by_time+delete_segments+second_level_segment_index -strftime 1 -hls_segment_filename {}/%s-%%d.ts -hls_segment_type mpegts {}'.format(FFMPEG, TS_TEMP_DIR, os.path.join(TS_TEMP_DIR, 'livestream.m3u8').split(' '), stdin=subprocess.PIPE)
+        sub_proc = subprocess.Popen('{} -re -i pipe:0 -y -an -vcodec copy -f hls -hls_time 2 -hls_list_size 10 -hls_delete_threshold 10 -hls_flags split_by_time+delete_segments+second_level_segment_index -strftime 1 -hls_segment_filename {}/%s-%%d.ts -hls_segment_type mpegts -'.format(FFMPEG, TS_TEMP_DIR).split(' '), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+
+        m3u8_thread = Thread(target=self.poll_m3u8, args=(sub_proc,))
+        m3u8_thread.setDaemon(True)
+        m3u8_thread.start()
 
         while True:
             if remote_status['watching']:
@@ -121,12 +136,18 @@ class H264Streamer:
             else:
                 time.sleep(0.05)
 
+    def poll_m3u8(self, sub_proc):
+        while True:
+            self.m3u8_q.append(sub_proc.stdout.readline())
+
     def upload_mpegts_to_server(self, ts_q, stream_host, token, sentryClient):
         try:
             while True:
               mpegts = ts_q.get()
+              print(mpegts)
               files = {'file': ('ts', open(mpegts), 'rb')}
               requests.post(stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + token}).raise_for_status()
+              print('done' + mpegts)
         except:
             import sys, traceback
             traceback.print_exc(file=sys.stdout)
