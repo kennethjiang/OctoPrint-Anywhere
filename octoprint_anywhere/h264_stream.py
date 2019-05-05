@@ -90,9 +90,8 @@ class TSWatcher(FileSystemEventHandler):
 
     def upload_mpegts_to_server(self, mpegts, stream_host, token, sentryClient):
         try:
-            while True:
-              files = {'file': ('ts', open(mpegts), 'rb')}
-              requests.post(stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + token}).raise_for_status()
+            files = {'file': ('ts', open(mpegts), 'rb')}
+            requests.post(stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + token}).raise_for_status()
         except:
             sentryClient.captureException()
 
@@ -116,6 +115,9 @@ class H264Streamer:
 
         self.webcam_server = WebcamServer(self.camera)
         self.webcam_server.start()
+
+        # Stream timestamps should be reset when ffmepg restarts
+        requests.delete(stream_host+'/video/mpegts', headers={"Authorization": "Bearer " + token})
 
         event_handler = TSWatcher(self.m3u8_q, stream_host, token, sentryClient)
         observer = Observer()
