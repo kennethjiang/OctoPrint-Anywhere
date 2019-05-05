@@ -1,16 +1,17 @@
 import io
 import os
+import logging
 import subprocess
 import time
 import flask
 from collections import deque
 import Queue
 from threading import Thread
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
 import requests
 
 from .utils import pi_version
+
+_logger = logging.getLogger(__name__)
 
 CAM_SERVER_PORT = 56720
 FFMPEG = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'bin', 'ffmpeg')
@@ -66,36 +67,6 @@ class WebcamServer:
         cam_server_thread.start()
 
 
-class TSWatcher(FileSystemEventHandler):
-
-    def __init__(self, m3u8_q, stream_host, token, sentryClient):
-        super(TSWatcher, self).__init__()
-        self.m3u8_q = m3u8_q
-        self.last_10 = deque([], 10)
-        self.stream_host = stream_host
-        self.token = token
-        self.sentryClient = sentryClient
-
-    def on_created(self, event):
-        m3u8 = list(self.m3u8_q)
-        if len(m3u8) < 10:
-            return
-
-        new_ts = m3u8[len(m3u8)-1].strip()
-        if new_ts in self.last_10:
-            return
-        self.last_10.append(new_ts)
-
-        self.upload_mpegts_to_server(os.path.join(TS_TEMP_DIR,new_ts), self.stream_host, self.token, self.sentryClient)
-
-    def upload_mpegts_to_server(self, mpegts, stream_host, token, sentryClient):
-        try:
-            files = {'file': ('ts', open(mpegts), 'rb')}
-            requests.post(stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + token}).raise_for_status()
-        except:
-            sentryClient.captureException()
-
-
 class H264Streamer:
 
     def __init__(self):
@@ -119,14 +90,11 @@ class H264Streamer:
         # Stream timestamps should be reset when ffmepg restarts
         requests.delete(stream_host+'/video/mpegts', headers={"Authorization": "Bearer " + token})
 
-        event_handler = TSWatcher(self.m3u8_q, stream_host, token, sentryClient)
-        observer = Observer()
-        observer.schedule(event_handler, TS_TEMP_DIR)
-        observer.start()
+        ffmpeg_cmd = '{} -re -i pipe:0 -y -an -vcodec copy -f hls -hls_time 2 -hls_list_size 10 -hls_delete_threshold 10 -hls_flags split_by_time+delete_segments+second_level_segment_index -strftime 1 -hls_segment_filename {}/%s-%%d.ts -hls_segment_type mpegts -'.format(FFMPEG, TS_TEMP_DIR)
+        _logger.info('Launching: ' + ffmpeg_cmd)
+        sub_proc = subprocess.Popen(ffmpeg_cmd.split(' '), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
-        sub_proc = subprocess.Popen('{} -re -i pipe:0 -y -an -vcodec copy -f hls -hls_time 2 -hls_list_size 10 -hls_delete_threshold 10 -hls_flags split_by_time+delete_segments+second_level_segment_index -strftime 1 -hls_segment_filename {}/%s-%%d.ts -hls_segment_type mpegts -'.format(FFMPEG, TS_TEMP_DIR).split(' '), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-
-        m3u8_thread = Thread(target=self.poll_m3u8, args=(sub_proc,))
+        m3u8_thread = Thread(target=self.poll_m3u8, args=(sub_proc, stream_host, token, sentryClient))
         m3u8_thread.setDaemon(True)
         m3u8_thread.start()
 
@@ -140,9 +108,20 @@ class H264Streamer:
             else:
                 time.sleep(0.05)
 
-    def poll_m3u8(self, sub_proc):
+    def poll_m3u8(self, sub_proc, stream_host, token, sentryClient):
+        last_10 = deque([], 10)
         while True:
-            self.m3u8_q.append(sub_proc.stdout.readline())
+            l = sub_proc.stdout.readline().strip()
+            if l.endswith('.ts') and not l in last_10:
+                last_10.append(l)
+                self.upload_mpegts_to_server(os.path.join(TS_TEMP_DIR,l), stream_host, token, sentryClient)
+              
+    def upload_mpegts_to_server(self, mpegts, stream_host, token, sentryClient):
+        try:
+            files = {'file': ('ts', open(mpegts), 'rb')}
+            requests.post(stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + token}).raise_for_status()
+        except:
+            sentryClient.captureException()
 
 
 class StubCamera:
