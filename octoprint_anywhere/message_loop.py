@@ -16,7 +16,7 @@ from .utils import ip_addr, ExpoBackoff
 
 class MessageLoop:
 
-    def __init__(self, config, printer, settings, plugin_version, plugin_manager, subscription):
+    def __init__(self, config, printer, settings, plugin_version, plugin_manager, dev_settings):
         self._mutex = threading.RLock()
         self._should_quit = False
         self.config = config
@@ -24,7 +24,7 @@ class MessageLoop:
         self._settings = settings
         self._plugin_version = plugin_version
         self._plugin_manager = plugin_manager
-        self.subscription = subscription
+        self.dev_settings = dev_settings
 
         self.remote_status = RemoteStatus()
 
@@ -52,8 +52,8 @@ class MessageLoop:
             stream_host = self.config['stream_host']
             token = self.config['token']
 
-            if self.subscription:
-                self.upstream = H264Streamer(self._settings.settings.effective['webcam'])
+            if self.dev_settings.get('subscription', None):
+                self.upstream = H264Streamer(self.dev_settings)
                 upstream_thread = threading.Thread(target=self.upstream.start_hls_pipeline, args=(stream_host, token, self.remote_status, self.config.sentry))
             else:
                 self.upstream = MjpegStream()

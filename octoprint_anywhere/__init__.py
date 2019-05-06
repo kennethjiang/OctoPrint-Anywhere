@@ -122,13 +122,13 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.__probe_auth_token__()
             self.config['registered'] = True
 
-        subscription = self.__get_reg_status__().get('subscription', None)
-        self.main_loop = MessageLoop(self.config, self._printer, self._settings, self._plugin_version, self._plugin_manager, subscription)
+        dev_settings = self.__get_dev_settings__()
+        self.main_loop = MessageLoop(self.config, self._printer, self._settings, self._plugin_version, self._plugin_manager, dev_settings)
         self.main_loop.run_until_quit()
 
     @backoff.on_exception(backoff.expo, Exception, max_value=120)
-    def __get_reg_status__(self):
-        r = requests.get(self.config['stream_host'] + "/api/reg_status", headers={"Authorization": "Bearer " + self.config['token']})
+    def __get_dev_settings__(self):
+        r = requests.get(self.config['stream_host'] + "/api/dev_settings", headers={"Authorization": "Bearer " + self.config['token']})
         r.raise_for_status()
         return r.json()
 

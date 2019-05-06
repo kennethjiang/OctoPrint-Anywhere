@@ -3,6 +3,7 @@ import os
 import logging
 import subprocess
 import time
+import sarge
 import flask
 from collections import deque
 import Queue
@@ -69,7 +70,7 @@ class WebcamServer:
 
 class H264Streamer:
 
-    def __init__(self, webcam_conf):
+    def __init__(self, dev_settings):
         self.m3u8_q = deque([], 24)
 
         if not pi_version():
@@ -77,13 +78,19 @@ class H264Streamer:
             global FFMPEG
             FFMPEG = 'ffmpeg'
         else:
+            r = sarge.run('sudo service webcamd stop')
+            time.sleep(0.2)
+
             import picamera
             self.camera = picamera.PiCamera()
 	    self.camera.framerate=25
 	    self.camera.resolution=(640, 480)
-	    self.camera.hflip=webcam_conf.get('flipH', False)
-	    self.camera.vflip=webcam_conf.get('flipV', False)
-	    self.camera.rotation=(90 if webcam_conf.get('rotate90', False) else 0)
+	    self.camera.hflip=dev_settings.get('flipH', False)
+	    self.camera.vflip=dev_settings.get('flipV', False)
+
+            rotation = (90 if dev_settings.get('rotate90', False) else 0)
+            rotation += (-90 if dev_settings.get('rotate90N', False) else 0)
+	    self.camera.rotation=rotation
 
         self.camera.start_preview()
 
