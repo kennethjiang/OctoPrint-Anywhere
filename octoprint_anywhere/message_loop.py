@@ -16,7 +16,7 @@ from .utils import ip_addr, ExpoBackoff
 
 class MessageLoop:
 
-    def __init__(self, config, printer, settings, plugin_version, plugin_manager):
+    def __init__(self, config, printer, settings, plugin_version, plugin_manager, subscription):
         self._mutex = threading.RLock()
         self._should_quit = False
         self.config = config
@@ -24,11 +24,12 @@ class MessageLoop:
         self._settings = settings
         self._plugin_version = plugin_version
         self._plugin_manager = plugin_manager
+        self.subscription = subscription
 
         self.remote_status = RemoteStatus()
 
         self.ss = None
-        self.mjpeg_strm = None
+        self.upstream = None
         self.timelapse_uploader = None
         self.op_info = None
 
@@ -37,8 +38,8 @@ class MessageLoop:
         with self._mutex:
             self._should_quit = True
 
-        if self.mjpeg_strm:
-            self.mjpeg_strm.quit()
+        if self.upstream:
+            self.upstream.quit()
         if self.timelapse_uploader:
             self.timelapse_uploader.quit()
 
@@ -48,16 +49,18 @@ class MessageLoop:
 
     def run_until_quit(self):
         try:
-
             stream_host = self.config['stream_host']
             token = self.config['token']
-            #self.mjpeg_strm = MjpegStream()
-            self.mjpeg_strm = H264Streamer(self._settings.settings.effective['webcam'])
-            upstream_thread = threading.Thread(target=self.mjpeg_strm.start_hls_pipeline, args=(stream_host, token, self.remote_status, self.config.sentry))
-            #upstream_thread = threading.Thread(target=self.mjpeg_strm.stream_up, args=(stream_host, token, self._printer, self.remote_status, self._settings.global_get(["webcam"]), self.config.sentry))
+
+            if self.subscription:
+                self.upstream = H264Streamer(self._settings.settings.effective['webcam'])
+                upstream_thread = threading.Thread(target=self.upstream.start_hls_pipeline, args=(stream_host, token, self.remote_status, self.config.sentry))
+            else:
+                self.upstream = MjpegStream()
+                upstream_thread = threading.Thread(target=self.upstream.stream_up, args=(stream_host, token, self._printer, self.remote_status, self._settings.global_get(["webcam"]), self.config.sentry))
+
             upstream_thread.daemon = True
             upstream_thread.start()
-
 
             self.timelapse_uploader = Timelapse()
             timelapse_upload_thread = threading.Thread(target=self.timelapse_uploader.upload_timelapses, args=(stream_host, token, self._settings.settings.getBaseFolder("timelapse")))

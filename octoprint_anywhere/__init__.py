@@ -7,6 +7,7 @@ import os
 import threading
 import time
 import requests
+import backoff
 from raven import breadcrumbs
 
 from .message_loop import MessageLoop
@@ -121,8 +122,15 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.__probe_auth_token__()
             self.config['registered'] = True
 
-        self.main_loop = MessageLoop(self.config, self._printer, self._settings, self._plugin_version, self._plugin_manager)
+        subscription = self.__get_reg_status__().get('subscription', None)
+        self.main_loop = MessageLoop(self.config, self._printer, self._settings, self._plugin_version, self._plugin_manager, subscription)
         self.main_loop.run_until_quit()
+
+    @backoff.on_exception(backoff.expo, Exception, max_value=120)
+    def __get_reg_status__(self):
+        r = requests.get(self.config['stream_host'] + "/api/reg_status", headers={"Authorization": "Bearer " + self.config['token']})
+        r.raise_for_status()
+        return r.json()
 
     def __probe_auth_token__(self):
         while True:

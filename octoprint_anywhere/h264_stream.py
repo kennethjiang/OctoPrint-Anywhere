@@ -120,13 +120,14 @@ class H264Streamer:
             if l.endswith('.ts') and not l in last_10:
                 last_10.append(l)
                 self.upload_mpegts_to_server(os.path.join(TS_TEMP_DIR,l), stream_host, token, sentryClient)
-              
+
     def upload_mpegts_to_server(self, mpegts, stream_host, token, sentryClient):
         try:
             files = {'file': ('ts', open(mpegts), 'rb')}
             requests.post(stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + token}).raise_for_status()
         except:
             sentryClient.captureException()
+            import traceback; traceback.print_exc()
 
 
 class StubCamera:
