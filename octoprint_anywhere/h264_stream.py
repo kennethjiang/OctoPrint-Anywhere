@@ -70,9 +70,10 @@ class WebcamServer:
 
 class H264Streamer:
 
-    def __init__(self, dev_settings):
+    def __init__(self):
         self.m3u8_q = deque([], 24)
 
+    def __init_camera__(self, dev_settings):
         if not pi_version():
             self.camera = StubCamera()
             global FFMPEG
@@ -94,7 +95,9 @@ class H264Streamer:
 
         self.camera.start_preview()
 
-    def start_hls_pipeline(self, stream_host, token, remote_status, sentryClient):
+    def start_hls_pipeline(self, stream_host, token, remote_status, sentryClient, dev_settings):
+
+       self.__init_camera__(dev_settings)
 
         self.webcam_server = WebcamServer(self.camera)
         self.webcam_server.start()
