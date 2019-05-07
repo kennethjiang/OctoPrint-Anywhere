@@ -9,6 +9,7 @@ from collections import deque
 import Queue
 from threading import Thread
 import requests
+import yaml
 
 from .utils import pi_version
 
@@ -70,10 +71,31 @@ class WebcamServer:
 
 class H264Streamer:
 
-    def __init__(self):
+    def __init__(self, stream_host, token, sentryClient):
         self.m3u8_q = deque([], 24)
+        self.stream_host = stream_host
+        self.token = token
+        self.sentryClient = sentryClient
 
-    def __init_camera__(self, dev_settings):
+    def __change_webcam_settings__(self, plugin):
+        try:
+            save_file_path = plugin.get_plugin_data_folder() + "/.webcam_settings_save.yaml"
+            snapshot_url_path = ['webcam', 'snapshot']
+            if not os.path.exists(save_file_path):
+                snapshot_url = plugin._settings.global_get(snapshot_url_path)
+                with open(save_file_path, 'w') as outfile:
+                    yaml.dump({'snapshot_url': snapshot_url}, outfile, default_flow_style=False)
+
+                plugin._settings.global_set(snapshot_url_path, 'http://127.0.0.1:{}/octoprint_anywhere/snapshot'.format(CAM_SERVER_PORT), force=True)
+                plugin._settings.save(force=True)
+        except:
+            self.sentryClient.captureException()
+            import traceback; traceback.print_exc()
+
+    def __init_camera__(self, plugin, dev_settings):
+
+        self.__change_webcam_settings__(plugin)
+
         if not pi_version():
             self.camera = StubCamera()
             global FFMPEG
@@ -95,21 +117,21 @@ class H264Streamer:
 
         self.camera.start_preview()
 
-    def start_hls_pipeline(self, stream_host, token, remote_status, sentryClient, dev_settings):
+    def start_hls_pipeline(self, remote_status, plugin, dev_settings):
 
-       self.__init_camera__(dev_settings)
+        self.__init_camera__(plugin, dev_settings)
 
         self.webcam_server = WebcamServer(self.camera)
         self.webcam_server.start()
 
         # Stream timestamps should be reset when ffmepg restarts
-        requests.delete(stream_host+'/video/mpegts', headers={"Authorization": "Bearer " + token})
+        requests.delete(self.stream_host+'/video/mpegts', headers={"Authorization": "Bearer " + self.token})
 
         ffmpeg_cmd = '{} -re -i pipe:0 -y -an -vcodec copy -f hls -hls_time 2 -hls_list_size 10 -hls_delete_threshold 10 -hls_flags split_by_time+delete_segments+second_level_segment_index -strftime 1 -hls_segment_filename {}/%s-%%d.ts -hls_segment_type mpegts -'.format(FFMPEG, TS_TEMP_DIR)
         _logger.info('Launching: ' + ffmpeg_cmd)
         sub_proc = subprocess.Popen(ffmpeg_cmd.split(' '), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
-        m3u8_thread = Thread(target=self.poll_m3u8, args=(sub_proc, stream_host, token, sentryClient))
+        m3u8_thread = Thread(target=self.poll_m3u8, args=(sub_proc,))
         m3u8_thread.setDaemon(True)
         m3u8_thread.start()
 
@@ -123,20 +145,21 @@ class H264Streamer:
             else:
                 time.sleep(0.05)
 
-    def poll_m3u8(self, sub_proc, stream_host, token, sentryClient):
+    def poll_m3u8(self, sub_proc):
         last_10 = deque([], 10)
         while True:
             l = sub_proc.stdout.readline().strip()
             if l.endswith('.ts') and not l in last_10:
                 last_10.append(l)
-                self.upload_mpegts_to_server(os.path.join(TS_TEMP_DIR,l), stream_host, token, sentryClient)
+                self.upload_mpegts_to_server(os.path.join(TS_TEMP_DIR,l))
 
-    def upload_mpegts_to_server(self, mpegts, stream_host, token, sentryClient):
+    def upload_mpegts_to_server(self, mpegts):
         try:
             files = {'file': ('ts', open(mpegts), 'rb')}
-            requests.post(stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + token}).raise_for_status()
+            r = requests.post(self.stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + self.token})
+            r.raise_for_status()
         except:
-            sentryClient.captureException()
+            self.sentryClient.captureException()
             import traceback; traceback.print_exc()
 
 

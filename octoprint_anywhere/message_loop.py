@@ -16,14 +16,11 @@ from .utils import ip_addr, ExpoBackoff
 
 class MessageLoop:
 
-    def __init__(self, config, printer, settings, plugin_version, plugin_manager, dev_settings):
+    def __init__(self, config, plugin, dev_settings):
         self._mutex = threading.RLock()
         self._should_quit = False
         self.config = config
-        self._printer = printer
-        self._settings = settings
-        self._plugin_version = plugin_version
-        self._plugin_manager = plugin_manager
+        self.plugin = plugin
         self.dev_settings = dev_settings
 
         self.remote_status = RemoteStatus()
@@ -53,17 +50,17 @@ class MessageLoop:
             token = self.config['token']
 
             if self.dev_settings.get('subscription', None):
-                self.upstream = H264Streamer(self.dev_settings)
-                upstream_thread = threading.Thread(target=self.upstream.start_hls_pipeline, args=(stream_host, token, self.remote_status, self.config.sentry))
+                self.upstream = H264Streamer(stream_host, token, self.config.sentry)
+                upstream_thread = threading.Thread(target=self.upstream.start_hls_pipeline, args=(self.remote_status, self.plugin, self.dev_settings))
             else:
                 self.upstream = MjpegStream()
-                upstream_thread = threading.Thread(target=self.upstream.stream_up, args=(stream_host, token, self._printer, self.remote_status, self._settings.global_get(["webcam"]), self.config.sentry))
+                upstream_thread = threading.Thread(target=self.upstream.stream_up, args=(stream_host, token, self.plugin._printer, self.remote_status, self.plugin._settings.global_get(["webcam"]), self.config.sentry))
 
             upstream_thread.daemon = True
             upstream_thread.start()
 
             self.timelapse_uploader = Timelapse()
-            timelapse_upload_thread = threading.Thread(target=self.timelapse_uploader.upload_timelapses, args=(stream_host, token, self._settings.settings.getBaseFolder("timelapse")))
+            timelapse_upload_thread = threading.Thread(target=self.timelapse_uploader.upload_timelapses, args=(stream_host, token, self.plugin._settings.settings.getBaseFolder("timelapse")))
             timelapse_upload_thread.daemon = True
             timelapse_upload_thread.start()
 
@@ -105,22 +102,22 @@ class MessageLoop:
 
         def __process_job_cmd__(cmd):
             if cmd == 'pause':
-                self._printer.pause_print()
+                self.plugin._printer.pause_print()
             elif cmd == 'cancel':
-                self._printer.cancel_print()
+                self.plugin._printer.cancel_print()
             elif cmd == 'resume':
-                self._printer.resume_print()
+                self.plugin._printer.resume_print()
 
         def __process_temps_cmd__(cmd):
             if 'set' in cmd:
-                self._printer.set_temperature(cmd['set']['heater'], cmd['set']['target'])
+                self.plugin._printer.set_temperature(cmd['set']['heater'], cmd['set']['target'])
 
         def __process_jog_cmd__(cmd):
             axis = cmd.keys()[0]
             if isinstance(cmd[axis], int):
-                self._printer.jog(cmd)
+                self.plugin._printer.jog(cmd)
             else:
-                self._printer.home(axis)
+                self.plugin._printer.home(axis)
 
         def __process_cmd__(cmd):
             for k, v in cmd.iteritems():
@@ -144,8 +141,8 @@ class MessageLoop:
             return
 
         try:
-            data = self._printer.get_current_data()
-            data['temps'] = self._printer.get_current_temperatures()
+            data = self.plugin._printer.get_current_data()
+            data['temps'] = self.plugin._printer.get_current_temperatures()
             data['origin'] = 'octoprint'
             if event_type:
                 data['type'] = event_type
@@ -168,19 +165,19 @@ class MessageLoop:
                     'octolapse': self.op_info['octolapse'],
                 },
                 'origin': 'oa',
-                'oaVersion': self._plugin_version
+                'oaVersion': self.plugin._plugin_version
             }, encoding='latin1'))
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
 
     def __gather_op_info__(self):
-        octolapse = self._plugin_manager.get_plugin_info('octolapse')
+        octolapse = self.plugin._plugin_manager.get_plugin_info('octolapse')
         return {
                 'ip_addrs': ip_addr(),
                 'octolapse': {'version': octolapse.version, 'enabled': octolapse.enabled} if octolapse else None,
                 'settings': {
-                        'temperature': self._settings.settings.effective['temperature']
+                        'temperature': self.plugin._settings.settings.effective['temperature']
                     }
                 }
 

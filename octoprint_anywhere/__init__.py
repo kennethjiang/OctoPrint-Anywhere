@@ -123,7 +123,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.config['registered'] = True
 
         dev_settings = self.__get_dev_settings__()
-        self.main_loop = MessageLoop(self.config, self._printer, self._settings, self._plugin_version, self._plugin_manager, dev_settings)
+        self.main_loop = MessageLoop(self.config, self, dev_settings)
         self.main_loop.run_until_quit()
 
     @backoff.on_exception(backoff.expo, Exception, max_value=120)
