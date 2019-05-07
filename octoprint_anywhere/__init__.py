@@ -50,6 +50,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         return dict(
             reset_config=[],
             get_config=[],
+            enable_premium_video=[],
+            disable_premium_video=[],
         )
 
     def is_api_adminonly(self):
@@ -66,8 +68,13 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
             return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}&copy_from={2}".format(self.config['api_host'], self.config['token'], old_token), registered=self.config['registered'])
         elif command == "get_config":
-            return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}".format(self.config['api_host'], self.config['token']), registered=self.config['registered'])
-
+            return self.config.get_json()
+        elif command == "enable_premium_video":
+            self.config.enabled_premium_video()
+            return self.config.get_json()
+        elif command == "disable_premium_video":
+            self.config.disabled_premium_video()
+            return self.config.get_json()
 
     def get_update_information(self):
         # Define the configuration for your plugin to use with the Software Update
@@ -123,7 +130,9 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.config['registered'] = True
 
         dev_settings = self.__get_dev_settings__()
-        self.main_loop = MessageLoop(self.config, self, dev_settings)
+        self.config.set_dev_settings(dev_settings)
+
+        self.main_loop = MessageLoop(self.config, self)
         self.main_loop.run_until_quit()
 
     @backoff.on_exception(backoff.expo, Exception, max_value=120)

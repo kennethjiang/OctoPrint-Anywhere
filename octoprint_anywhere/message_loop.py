@@ -16,12 +16,11 @@ from .utils import ip_addr, ExpoBackoff
 
 class MessageLoop:
 
-    def __init__(self, config, plugin, dev_settings):
+    def __init__(self, config, plugin):
         self._mutex = threading.RLock()
         self._should_quit = False
         self.config = config
         self.plugin = plugin
-        self.dev_settings = dev_settings
 
         self.remote_status = RemoteStatus()
 
@@ -49,7 +48,7 @@ class MessageLoop:
             stream_host = self.config['stream_host']
             token = self.config['token']
 
-            if self.dev_settings.get('subscription', None):
+            if self.config.premium_video_enabled():
                 self.upstream = H264Streamer(stream_host, token, self.config.sentry)
                 upstream_thread = threading.Thread(target=self.upstream.start_hls_pipeline, args=(self.remote_status, self.plugin, self.dev_settings))
             else:

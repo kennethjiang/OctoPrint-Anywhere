@@ -37,7 +37,7 @@
 <div data-bind="visible: !registered() && !tokenReset()">
     <a class="btn btn-primary" data-bind="attr: {href: regUrl()}" target="blank">Register my 3D printer on getanywhere.io</a>
 
-    <div><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i> Having difficulties registering?</a></div>
+    <div><a href="#" class="muted" style="margin: 0px 12px;" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i> Having difficulties registering?</a></div>
     <div class="hide">
       <ul>
         <li>Make sure your browser, as well as Raspberry Pi, are both connected to internet.</li>
@@ -45,6 +45,34 @@
         <li>If it still does not work, please <a href="mailto:support@getanywhere.io">report a bug</a>.</li>
       </ul>
     </div>
+</div>
+
+<hr />
+<div data-bind="visible: premiumEligible()">
+    <h4>OctoPrint Anywhere Premium</h4>
+    <p>Thank you for supporting OctoPrint Anywhere with your Premium Subscription. However, premium video streaming is not enabled because a few default OctoPrint settings.</p>
+    <p>
+        <a class="btn btn-primary btn-block" data-bind="css: { disabled: premiumVideoEnabled() }, click: enablePremiumVideoClicked" >Change OctoPrint settings to enable Premium Video Streaming</a>
+        <a class="btn btn-block" data-bind="css: { disabled: !premiumVideoEnabled() }, click: disablePremiumVideoClicked" >Restore original OctoPrint settings (this will disable Premium Video Streaming)</a>
+    </p>
+
+    <p><a href="#" class="muted" onclick="$(this).children().toggleClass('icon-caret-right icon-caret-down').parent().parent().next().slideToggle('fast')"><i class="icon-caret-right"></i> What do these buttons do? And why?</a></p>
+    <div class="hide">
+        <p style="font-weight: bolder;">What settings will be changed?</p>
+        <ul>
+            <li>'mjpeg-streamer', the original, low-efficient streaming will be turned off.</li>
+            <li>The snapshot URL will be changed from 'http://192.168.134.30:8080/?action=snapshot' to 'http://127.0.0.1:56720/octoprint_anywhere/snapshot'</li>
+        </ul>
+        <p style="font-weight: bolder;">Why do these settings need to be changed?</p>
+        <p>
+    By default, OctoPrint uses a low-efficient webcam streaming mechanism called 'mjpeg-streamer'. OctoPrint Anywhere Premium Video Streaming is using 'H.264', a highly efficient modern streaming technology. However, 'mjpeg-streamer' and 'H.264' can't be running at the same time. This is because they are based on fundamentally different technologies and will cause conflicts if they try to use the same camera simultaneously. Therefore, 'mjpeg-streamer' in OctoPrint needs to be turned off before OctoPrint Anywhere Premium Video Streaming can be enabled.
+        </p>
+        <p style="font-weight: bolder;">I no longer need Premium Video Streaming, how do I change the settings back?</p>
+        <p>You can just click the "Restore original OctoPrint settings" button and everything will be taken care of for you.</p>
+        <p style="font-weight: bolder;">Ths is fascinating! What can I learn more about it?</p>
+        <p>Check out <a href="#">our blogs</a> where we revealed the technologies under the hood (geek alert: nitty-gritty technical details).</p>
+    </div>
+    <hr />
 </div>
 
 <h4>About OctoPrint Anywhere</h4>

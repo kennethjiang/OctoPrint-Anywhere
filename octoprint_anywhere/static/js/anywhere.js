@@ -13,6 +13,8 @@ function AnywhereViewModel(parameters) {
 
     self.regUrl = ko.observable('');
     self.registered = ko.observable(false);
+    self.premiumEligible = ko.observable(false);
+    self.premiumVideoEnabled= ko.observable(false);
     self.tokenReset = ko.observable(false);
     self.sending = ko.observable(false);
 
@@ -25,10 +27,14 @@ function AnywhereViewModel(parameters) {
         });
     };
 
-    apiCommand({command: 'get_config'}, function(result) {
-        self.regUrl(result.reg_url);
-        self.registered(result.registered);
-    });
+    var setConfigVars = function(configResp) {
+        self.regUrl(configResp.reg_url);
+        self.registered(configResp.registered);
+        self.premiumEligible(configResp.premium_eligible);
+        self.premiumVideoEnabled(configResp.premium_video_enabled);
+    };
+
+    apiCommand({command: 'get_config'}, setConfigVars);
 
     self.resetButtonClicked = function(event) {
         self.sending(true);
@@ -40,6 +46,14 @@ function AnywhereViewModel(parameters) {
                 self.sending(false);
             }, 500);
         });
+    };
+
+    self.enablePremiumVideoClicked = function(event) {
+        apiCommand({command: 'enable_premium_video'}, setConfigVars);
+    };
+
+    self.disablePremiumVideoClicked = function(event) {
+        apiCommand({command: 'disable_premium_video'}, setConfigVars);
     };
 }
 

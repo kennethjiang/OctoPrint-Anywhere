@@ -4,11 +4,15 @@ import logging
 import threading
 import yaml
 from raven import breadcrumbs
+import os
+
+CAM_SERVER_PORT = 56720
 
 class Config:
 
     def __init__(self, plugin):
         self._mutex = threading.RLock()
+        self.plugin = plugin
 
         import raven
         self.sentry = raven.Client(
@@ -17,7 +21,7 @@ class Config:
                 )
 
         try:
-            self.config_path = plugin.get_plugin_data_folder() + "/.config.yaml"
+            self.config_path = self.plugin.get_plugin_data_folder() + "/.config.yaml"
             self._logger = logging.getLogger(__name__)
             self.load_config()
         except:
@@ -26,7 +30,7 @@ class Config:
 
     def __getitem__(self, key):
         with self._mutex:
-            return self.__items__[key]
+            return self.__items__.get(key)
 
     def __setitem__(self, key, value):
         with self._mutex:
@@ -34,7 +38,6 @@ class Config:
             self.save_config()
 
     def load_config(self):
-        import os.path
 
         if not os.path.exists(self.config_path):
             self.reset_config()
@@ -67,6 +70,7 @@ class Config:
                     yaml.dump(self.__items__, outfile, default_flow_style=False)
 
     def reset_config(self):
+        original_items = dict(self.__items__)
         try:
             import random
             import string
@@ -75,13 +79,71 @@ class Config:
 
             with open(self.config_path, 'w') as outfile:
                 with self._mutex:
-                    self.__items__ = dict(
+                    original_items.update(dict(
                             token=token,
                             registered=False,
                             ws_host="wss://www.getanywhere.io",
                             api_host="https://www.getanywhere.io",
                             stream_host="http://stream.getanywhere.io"
-                            )
+                            ))
+
+                    self.__items__ = original_items
                     yaml.dump(self.__items__, outfile, default_flow_style=False)
         except:
             self.sentry.captureException()
+
+    def set_dev_settings(self, dev_settings):
+        sub_status = True if dev_settings.get('subscription', None) else False
+        if sub_status != self.__items__.get('premium_eligible'):
+            self.__items__['premium_eligible'] = bool(sub_status)
+            self.save_config()
+
+    def premium_eligible(self):
+        return self.__items__.get('premium_eligible', False)
+
+    def premium_video_enabled(self):
+        return self.premium_eligible() and self.__items__.get('premium_video_enabled', False)
+
+    def enabled_premium_video(self):
+        if not self.premium_eligible():
+            return
+
+        try:
+            save_file_path = self.plugin.get_plugin_data_folder() + "/.webcam_settings_save.yaml"
+            snapshot_url_path = ['webcam', 'snapshot']
+            if not os.path.exists(save_file_path):
+                snapshot_url = self.plugin._settings.global_get(snapshot_url_path)
+                with open(save_file_path, 'w') as outfile:
+                    yaml.dump({'snapshot_url': snapshot_url}, outfile, default_flow_style=False)
+
+            self.plugin._settings.global_set(snapshot_url_path, 'http://127.0.0.1:{}/octoprint_anywhere/snapshot'.format(CAM_SERVER_PORT), force=True)
+            self.plugin._settings.save(force=True)
+
+            self.__items__['premium_video_enabled'] = True
+            self.save_config()
+        except:
+            self.sentry.captureException()
+            import traceback; traceback.print_exc()
+
+    def disabled_premium_video(self):
+        if not self.premium_eligible():
+            return
+
+        try:
+            snapshot_url_path = ['webcam', 'snapshot']
+            save_file_path = self.plugin.get_plugin_data_folder() + "/.webcam_settings_save.yaml"
+            with open(save_file_path, 'r') as stream:
+                saved = yaml.load(stream.read())
+                self.plugin._settings.global_set(snapshot_url_path, saved['snapshot_url'], force=True)
+                self.plugin._settings.save(force=True)
+
+            os.remove(save_file_path)
+            self.__items__['premium_video_enabled'] = False
+            self.save_config()
+        except:
+            self.sentry.captureException()
+            import traceback; traceback.print_exc()
+
+    def get_json(self):
+        import flask
+        return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}".format(self['api_host'], self['token']), registered=self['registered'], premium_eligible=self.premium_eligible(), premium_video_enabled=self.premium_video_enabled())

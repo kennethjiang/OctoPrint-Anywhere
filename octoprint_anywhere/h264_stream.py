@@ -12,10 +12,10 @@ import requests
 import yaml
 
 from .utils import pi_version
+from .config import CAM_SERVER_PORT
 
 _logger = logging.getLogger(__name__)
 
-CAM_SERVER_PORT = 56720
 FFMPEG = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'bin', 'ffmpeg')
 
 TS_TEMP_DIR = '/tmp/octoprintanywhere-ts'
@@ -77,24 +77,7 @@ class H264Streamer:
         self.token = token
         self.sentryClient = sentryClient
 
-    def __change_webcam_settings__(self, plugin):
-        try:
-            save_file_path = plugin.get_plugin_data_folder() + "/.webcam_settings_save.yaml"
-            snapshot_url_path = ['webcam', 'snapshot']
-            if not os.path.exists(save_file_path):
-                snapshot_url = plugin._settings.global_get(snapshot_url_path)
-                with open(save_file_path, 'w') as outfile:
-                    yaml.dump({'snapshot_url': snapshot_url}, outfile, default_flow_style=False)
-
-                plugin._settings.global_set(snapshot_url_path, 'http://127.0.0.1:{}/octoprint_anywhere/snapshot'.format(CAM_SERVER_PORT), force=True)
-                plugin._settings.save(force=True)
-        except:
-            self.sentryClient.captureException()
-            import traceback; traceback.print_exc()
-
     def __init_camera__(self, plugin, dev_settings):
-
-        self.__change_webcam_settings__(plugin)
 
         if not pi_version():
             self.camera = StubCamera()
