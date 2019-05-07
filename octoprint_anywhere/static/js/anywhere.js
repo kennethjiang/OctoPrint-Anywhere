@@ -34,6 +34,15 @@ function AnywhereViewModel(parameters) {
         self.premiumVideoEnabled(configResp.premium_video_enabled);
     };
 
+    var notifyUser = function(text, type) {
+        new PNotify({
+                title: "OctoPrint Anywhere",
+                text: text,
+                type: type,
+                hide: false,
+            });
+    }
+
     apiCommand({command: 'get_config'}, setConfigVars);
 
     self.resetButtonClicked = function(event) {
@@ -49,11 +58,17 @@ function AnywhereViewModel(parameters) {
     };
 
     self.enablePremiumVideoClicked = function(event) {
-        apiCommand({command: 'enable_premium_video'}, setConfigVars);
+        apiCommand({command: 'enable_premium_video'}, function(result) {
+            setConfigVars(result);
+            notifyUser("OctoPrint settings changed successfully. Premium video streaming is now enabled. Enjoy!", "success");
+        });
     };
 
     self.disablePremiumVideoClicked = function(event) {
-        apiCommand({command: 'disable_premium_video'}, setConfigVars);
+        apiCommand({command: 'disable_premium_video'}, function(result) {
+            setConfigVars(result);
+            notifyUser("OctoPrint settings resotred successfully. Premium video streaming is now disabled.", "warn");
+        });
     };
 }
 
