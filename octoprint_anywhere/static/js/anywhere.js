@@ -18,12 +18,13 @@ function AnywhereViewModel(parameters) {
     self.tokenReset = ko.observable(false);
     self.sending = ko.observable(false);
 
-    var apiCommand = function(cmd, callback) {
+    var apiCommand = function(cmd, callback, errorCallback) {
         $.ajax('/api/plugin/anywhere', {
             method: "POST",
             contentType: 'application/json',
             data: JSON.stringify(cmd),
-            success: callback
+            success: callback,
+            error: errorCallback
         });
     };
 
@@ -61,6 +62,8 @@ function AnywhereViewModel(parameters) {
         apiCommand({command: 'enable_premium_video'}, function(result) {
             setConfigVars(result);
             notifyUser("OctoPrint settings changed successfully. Premium video streaming is now enabled. Enjoy!", "success");
+        }, function() {
+            notifyUser("There was an error when changing OctoPrint's settings. Please contact us at support@getanywhere.io.", "error");
         });
     };
 
@@ -68,6 +71,8 @@ function AnywhereViewModel(parameters) {
         apiCommand({command: 'disable_premium_video'}, function(result) {
             setConfigVars(result);
             notifyUser("OctoPrint settings resotred successfully. Please restart OctoPrint.", "warn");
+        }, function() {
+            notifyUser("There was an error when restoring OctoPrint's settings. Please contact us at support@getanywhere.io.", "error");
         });
     };
 }

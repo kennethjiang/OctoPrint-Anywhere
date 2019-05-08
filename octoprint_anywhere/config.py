@@ -4,6 +4,7 @@ import logging
 import threading
 import yaml
 from raven import breadcrumbs
+import sarge
 import os
 
 CAM_SERVER_PORT = 56720
@@ -113,22 +114,23 @@ class Config:
         if not self.premium_eligible():
             return
 
-        try:
-            save_file_path = self.plugin.get_plugin_data_folder() + "/.webcam_settings_save.yaml"
-            snapshot_url_path = ['webcam', 'snapshot']
-            if not os.path.exists(save_file_path):
-                snapshot_url = self.plugin._settings.global_get(snapshot_url_path)
-                with open(save_file_path, 'w') as outfile:
-                    yaml.dump({'snapshot_url': snapshot_url}, outfile, default_flow_style=False)
+        if not os.environ.get('CAM_SIM', False):
+            r = sarge.run('/home/pi/oprint/bin/python -m pip install picamera', stderr=sarge.Capture())
+            if not r.returncode == 0:
+                raise Exception(r.stderr.text)
 
-            self.plugin._settings.global_set(snapshot_url_path, 'http://127.0.0.1:{}/octoprint_anywhere/snapshot'.format(CAM_SERVER_PORT), force=True)
-            self.plugin._settings.save(force=True)
+        save_file_path = self.plugin.get_plugin_data_folder() + "/.webcam_settings_save.yaml"
+        snapshot_url_path = ['webcam', 'snapshot']
+        if not os.path.exists(save_file_path):
+            snapshot_url = self.plugin._settings.global_get(snapshot_url_path)
+            with open(save_file_path, 'w') as outfile:
+                yaml.dump({'snapshot_url': snapshot_url}, outfile, default_flow_style=False)
 
-            self.__items__['premium_video_enabled'] = True
-            self.save_config()
-        except:
-            self.sentry.captureException()
-            import traceback; traceback.print_exc()
+        self.plugin._settings.global_set(snapshot_url_path, 'http://127.0.0.1:{}/octoprint_anywhere/snapshot'.format(CAM_SERVER_PORT), force=True)
+        self.plugin._settings.save(force=True)
+
+        self.__items__['premium_video_enabled'] = True
+        self.save_config()
 
     def disabled_premium_video(self):
         if not self.premium_eligible():
