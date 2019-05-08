@@ -71,6 +71,10 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             return self.config.get_json()
         elif command == "enable_premium_video":
             self.config.enabled_premium_video()
+
+            self.main_loop.quit()
+            self.start_main_thread()
+
             return self.config.get_json()
         elif command == "disable_premium_video":
             self.config.disabled_premium_video()
