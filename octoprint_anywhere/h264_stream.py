@@ -101,7 +101,6 @@ class H264Streamer:
         self.camera.start_preview()
 
     def start_hls_pipeline(self, remote_status, plugin, dev_settings):
-
         self.__init_camera__(plugin, dev_settings)
 
         self.webcam_server = WebcamServer(self.camera)

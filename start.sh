@@ -1,4 +1,4 @@
 #!/bin/bash
 
-octoprint --iknowwhatimdoing --basedir /vagrant/data --debug
+CAM_SIM=True octoprint --iknowwhatimdoing --basedir /vagrant/data --debug
 

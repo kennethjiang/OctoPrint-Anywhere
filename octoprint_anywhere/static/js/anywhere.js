@@ -60,14 +60,14 @@ function AnywhereViewModel(parameters) {
     self.enablePremiumVideoClicked = function(event) {
         apiCommand({command: 'enable_premium_video'}, function(result) {
             setConfigVars(result);
-            notifyUser("OctoPrint settings changed successfully. Premium video streaming is now enabled. Enjoy!", "success");
+            notifyUser("OctoPrint settings changed successfully. Premium video streaming will be enabled after you restart OctoPrint.", "success");
         });
     };
 
     self.disablePremiumVideoClicked = function(event) {
         apiCommand({command: 'disable_premium_video'}, function(result) {
             setConfigVars(result);
-            notifyUser("OctoPrint settings resotred successfully. Premium video streaming is now disabled.", "warn");
+            notifyUser("OctoPrint settings resotred successfully. Please restart OctoPrint.", "warn");
         });
     };
 }

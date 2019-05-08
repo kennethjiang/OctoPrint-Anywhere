@@ -5,6 +5,7 @@ import threading
 import requests
 import time
 import json
+import os
 from raven import breadcrumbs
 
 from .mjpeg_stream import MjpegStream
@@ -12,7 +13,7 @@ from .h264_stream import H264Streamer
 from .timelapse import Timelapse
 from .server_ws import ServerSocket
 from .remote_status import RemoteStatus
-from .utils import ip_addr, ExpoBackoff
+from .utils import ip_addr, ExpoBackoff, pi_version
 
 class MessageLoop:
 
@@ -48,12 +49,15 @@ class MessageLoop:
             stream_host = self.config['stream_host']
             token = self.config['token']
 
+            self.upstream = MjpegStream()
+            upstream_thread = threading.Thread(target=self.upstream.stream_up, args=(stream_host, token, self.plugin._printer, self.remote_status, self.plugin._settings.global_get(["webcam"]), self.config.sentry))
+
             if self.config.premium_video_enabled():
-                self.upstream = H264Streamer(stream_host, token, self.config.sentry)
-                upstream_thread = threading.Thread(target=self.upstream.start_hls_pipeline, args=(self.remote_status, self.plugin, self.dev_settings))
-            else:
-                self.upstream = MjpegStream()
-                upstream_thread = threading.Thread(target=self.upstream.stream_up, args=(stream_host, token, self.plugin._printer, self.remote_status, self.plugin._settings.global_get(["webcam"]), self.config.sentry))
+                if pi_version() or os.environ.get('CAM_SIM', False):
+                    self.upstream = H264Streamer(stream_host, token, self.config.sentry)
+                    upstream_thread = threading.Thread(target=self.upstream.start_hls_pipeline, args=(self.remote_status, self.plugin, self.config.dev_settings))
+                else:
+                    self.config.sentry.captureMessage('Premium video is enabled on a non-RPi platform: {}'.format(self.config['token']))
 
             upstream_thread.daemon = True
             upstream_thread.start()

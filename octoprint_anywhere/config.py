@@ -93,7 +93,12 @@ class Config:
             self.sentry.captureException()
 
     def set_dev_settings(self, dev_settings):
-        sub_status = True if dev_settings.get('subscription', None) else False
+        self.dev_settings = dev_settings
+        subs = dev_settings.get('subscription', [])
+        sub_status = False
+        if len(subs) > 0 and filter(lambda x: x['plan'] == 'premium-alpha', subs):
+            sub_status = True
+
         if sub_status != self.__items__.get('premium_eligible'):
             self.__items__['premium_eligible'] = bool(sub_status)
             self.save_config()
