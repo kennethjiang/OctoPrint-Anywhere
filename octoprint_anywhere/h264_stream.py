@@ -16,7 +16,7 @@ from .config import CAM_SERVER_PORT
 
 _logger = logging.getLogger(__name__)
 
-FFMPEG = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'bin', 'ffmpeg')
+FFMPEG = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'ffmpeg')
 
 TS_TEMP_DIR = '/tmp/octoprintanywhere-ts'
 if not os.path.exists(TS_TEMP_DIR):
