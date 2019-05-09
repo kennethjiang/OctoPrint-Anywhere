@@ -153,6 +153,7 @@ class StubCamera:
         h264s = map(lambda x: os.path.join(h264s_path, x), sorted(os.listdir(h264s_path)))
         self.h264_files = cycle(h264s)
         self.running = False
+        self.last_frame = 0
 
     def start_preview(self):
         pass
@@ -175,8 +176,8 @@ class StubCamera:
                 return
 
             with open(fn) as f:
+                time.sleep(max(2 - (time.time() - self.last_frame), 0))
                 stream.write(f.read())
-                time.sleep(0.04)
 
 
 if __name__ == "__main__":
