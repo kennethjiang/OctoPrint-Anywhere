@@ -72,7 +72,7 @@ class Config:
                     yaml.dump(self.__items__, outfile, default_flow_style=False)
 
     def reset_config(self):
-        original_items = dict(self.__items__)
+        original_items = self.__items__
         try:
             import random
             import string
