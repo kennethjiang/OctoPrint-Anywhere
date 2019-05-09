@@ -14,6 +14,7 @@ class Config:
     def __init__(self, plugin):
         self._mutex = threading.RLock()
         self.plugin = plugin
+        self.__items__ = dict()
 
         import raven
         self.sentry = raven.Client(
