@@ -175,8 +175,9 @@ class StubCamera:
             if not self.running:
                 return
 
+            time.sleep(max(2 - (time.time() - self.last_frame), 0))
+            self.last_frame = time.time()
             with open(fn) as f:
-                time.sleep(max(2 - (time.time() - self.last_frame), 0))
                 stream.write(f.read())
 
 
