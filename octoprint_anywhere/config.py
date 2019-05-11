@@ -94,62 +94,10 @@ class Config:
 
     def set_dev_settings(self, dev_settings):
         self.dev_settings = dev_settings
-        subs = dev_settings.get('subscription', [])
-        sub_status = False
-        if len(subs) > 0 and filter(lambda x: x['plan'] == 'premium-alpha', subs):
-            sub_status = True
 
-        if sub_status != self.__items__.get('premium_eligible'):
-            self.__items__['premium_eligible'] = bool(sub_status)
-            self.save_config()
-
-    def premium_eligible(self):
-        return self.__items__.get('premium_eligible', False)
-
-    def premium_video_enabled(self):
-        return self.premium_eligible() and self.__items__.get('premium_video_enabled', False)
-
-    def enabled_premium_video(self):
-        if not self.premium_eligible():
-            return
-
-        if not os.environ.get('CAM_SIM', False):
-            r = sarge.run('/home/pi/oprint/bin/python -m pip install picamera', stderr=sarge.Capture())
-            if not r.returncode == 0:
-                raise Exception(r.stderr.text)
-
-        save_file_path = self.plugin.get_plugin_data_folder() + "/.webcam_settings_save.yaml"
-        snapshot_url_path = ['webcam', 'snapshot']
-        if not os.path.exists(save_file_path):
-            snapshot_url = self.plugin._settings.global_get(snapshot_url_path)
-            with open(save_file_path, 'w') as outfile:
-                yaml.dump({'snapshot_url': snapshot_url}, outfile, default_flow_style=False)
-
-        self.plugin._settings.global_set(snapshot_url_path, 'http://127.0.0.1:8080/octoprint_anywhere/snapshot', force=True)
-        self.plugin._settings.save(force=True)
-
-        self.__items__['premium_video_enabled'] = True
-        self.save_config()
-
-    def disabled_premium_video(self):
-        if not self.premium_eligible():
-            return
-
-        try:
-            snapshot_url_path = ['webcam', 'snapshot']
-            save_file_path = self.plugin.get_plugin_data_folder() + "/.webcam_settings_save.yaml"
-            with open(save_file_path, 'r') as stream:
-                saved = yaml.load(stream.read())
-                self.plugin._settings.global_set(snapshot_url_path, saved['snapshot_url'], force=True)
-                self.plugin._settings.save(force=True)
-
-            os.remove(save_file_path)
-            self.__items__['premium_video_enabled'] = False
-            self.save_config()
-        except:
-            self.sentry.captureException()
-            import traceback; traceback.print_exc()
+    def premium_video_eligible(self):
+        return self.dev_settings.get('premium_video', False)
 
     def get_json(self):
         import flask
-        return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}".format(self['api_host'], self['token']), registered=self['registered'], premium_eligible=self.premium_eligible(), premium_video_enabled=self.premium_video_enabled())
+        return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}".format(self['api_host'], self['token']), registered=self['registered'])

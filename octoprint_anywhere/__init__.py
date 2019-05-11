@@ -50,8 +50,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         return dict(
             reset_config=[],
             get_config=[],
-            enable_premium_video=[],
-            disable_premium_video=[],
         )
 
     def is_api_adminonly(self):
@@ -68,16 +66,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
             return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}&copy_from={2}".format(self.config['api_host'], self.config['token'], old_token), registered=self.config['registered'])
         elif command == "get_config":
-            return self.config.get_json()
-        elif command == "enable_premium_video":
-            self.config.enabled_premium_video()
-
-            self.main_loop.quit()
-            self.start_main_thread()
-
-            return self.config.get_json()
-        elif command == "disable_premium_video":
-            self.config.disabled_premium_video()
             return self.config.get_json()
 
     def get_update_information(self):

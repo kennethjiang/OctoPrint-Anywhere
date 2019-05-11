@@ -65,8 +65,8 @@ class WebcamServer:
             with self._mutex:
                 gap = time.time() - self.last_capture
                 if gap < 0.1:
-                    break 
-        
+                    break
+
         return flask.send_file(io.BytesIO(chunk), mimetype='image/jpeg')
 
     def get_mjpeg(self):
@@ -111,8 +111,11 @@ class H264Streamer:
             global FFMPEG
             FFMPEG = 'ffmpeg'
         else:
-            r = sarge.run('sudo service webcamd stop')
-            time.sleep(0.2)
+            sarge.run('sudo service webcamd stop')
+            if not os.environ.get('CAM_SIM', False):
+                r = sarge.run('/home/pi/oprint/bin/python -m pip install picamera', stderr=sarge.Capture())
+                if not r.returncode == 0:
+                    raise Exception(r.stderr.text)
 
             import picamera
             self.camera = picamera.PiCamera()
@@ -181,6 +184,9 @@ class StubCamera:
         self.h264_files = cycle(h264s)
         self.running = False
         self.last_frame = 0
+
+    def capture_continuous(self, bio, format='jpeg', use_video_port=True):
+        return []
 
     def start_preview(self):
         pass
