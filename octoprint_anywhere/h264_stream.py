@@ -36,11 +36,14 @@ class WebcamServer:
             chunk = bio.read()
             bio.seek(0)
             bio.truncate()
-            self.img_q.put(chunk)
 
             with self._mutex:
-                seconds_to_sleep = max(0.2 - (time.time() - self.last_capture), 0)
+                last_last_capture = self.last_capture
                 self.last_capture = time.time()
+
+            self.img_q.put(chunk)
+
+            seconds_to_sleep = max(0.2 - (time.time() - last_last_capture), 0)
             time.sleep(seconds_to_sleep)
 
     def mjpeg_generator(self, boundary):
@@ -58,11 +61,11 @@ class WebcamServer:
 
     def get_snapshot(self):
         while True:
+            chunk = self.img_q.get()
             with self._mutex:
                 gap = time.time() - self.last_capture
-            if gap < 0.1:
-                break 
-            chunk = self.img_q.get()
+                if gap < 0.1:
+                    break 
         
         return flask.send_file(io.BytesIO(chunk), mimetype='image/jpeg')
 
