@@ -13,11 +13,8 @@ function AnywhereViewModel(parameters) {
 
     self.regUrl = ko.observable('');
     self.registered = ko.observable(false);
-    self.premiumEligible = ko.observable(false);
-    self.premiumVideoEnabled= ko.observable(false);
     self.tokenReset = ko.observable(false);
     self.sending = ko.observable(false);
-    self.enabling_premium = ko.observable(false);
 
     var apiCommand = function(cmd, callback, errorCallback) {
         $.ajax('/api/plugin/anywhere', {
@@ -32,18 +29,7 @@ function AnywhereViewModel(parameters) {
     var setConfigVars = function(configResp) {
         self.regUrl(configResp.reg_url);
         self.registered(configResp.registered);
-        self.premiumEligible(configResp.premium_eligible);
-        self.premiumVideoEnabled(configResp.premium_video_enabled);
     };
-
-    var notifyUser = function(text, type) {
-        new PNotify({
-                title: "OctoPrint Anywhere",
-                text: text,
-                type: type,
-                hide: false,
-            });
-    }
 
     apiCommand({command: 'get_config'}, setConfigVars);
 
@@ -59,26 +45,6 @@ function AnywhereViewModel(parameters) {
         });
     };
 
-    self.enablePremiumVideoClicked = function(event) {
-        self.enabling_premium(true);
-        apiCommand({command: 'enable_premium_video'}, function(result) {
-            setConfigVars(result);
-            notifyUser("OctoPrint settings changed successfully. Premium video streaming is now enabled. Enjoy!", "success");
-            self.enabling_premium(false);
-        }, function() {
-            notifyUser("There was an error when changing OctoPrint's settings. Please contact us at support@getanywhere.io.", "error");
-            self.enabling_premium(false);
-        });
-    };
-
-    self.disablePremiumVideoClicked = function(event) {
-        apiCommand({command: 'disable_premium_video'}, function(result) {
-            setConfigVars(result);
-            notifyUser("OctoPrint settings resotred successfully. Please reboot Rapsberry Pi.", "warn");
-        }, function() {
-            notifyUser("There was an error when restoring OctoPrint's settings. Please contact us at support@getanywhere.io.", "error");
-        });
-    };
 }
 
 

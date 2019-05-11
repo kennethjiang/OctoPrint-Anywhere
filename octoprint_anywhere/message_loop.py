@@ -52,7 +52,7 @@ class MessageLoop:
             self.upstream = MjpegStream()
             upstream_thread = threading.Thread(target=self.upstream.stream_up, args=(stream_host, token, self.plugin._printer, self.remote_status, self.plugin._settings.global_get(["webcam"]), self.config.sentry))
 
-            if self.config.premium_video_enabled():
+            if self.config.premium_video_eligible():
                 if pi_version() or os.environ.get('CAM_SIM', False):
                     self.upstream = H264Streamer(stream_host, token, self.config.sentry)
                     upstream_thread = threading.Thread(target=self.upstream.start_hls_pipeline, args=(self.remote_status, self.plugin, self.config.dev_settings))
