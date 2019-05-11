@@ -64,7 +64,7 @@ class WebcamServer:
                 break 
             chunk = self.img_q.get()
         
-        return flask.send_file(io.BytesIO(chunk), mimetype='image/jpg')
+        return flask.send_file(io.BytesIO(chunk), mimetype='image/jpeg')
 
     def get_mjpeg(self):
         boundary='herebedragons'
