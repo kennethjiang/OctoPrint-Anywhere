@@ -12,7 +12,6 @@ import requests
 import yaml
 
 from .utils import pi_version
-from .config import CAM_SERVER_PORT
 
 _logger = logging.getLogger(__name__)
 
@@ -25,48 +24,59 @@ if not os.path.exists(TS_TEMP_DIR):
 class WebcamServer:
     def __init__(self, camera):
         self.camera = camera
+        self.img_q = Queue.Queue(maxsize=1)
 
-    def capture_image(self):
-        output = io.BytesIO()
-        self.camera.capture(output, format='jpeg')
-        return output
+    def capture_forever(self):
+        bio = io.BytesIO()
+        for foo in self.camera.capture_continuous(bio, format='jpeg', use_video_port=True):
+            bio.seek(0)
+            chunk = bio.read()
+            bio.seek(0)
+            bio.truncate()
+            self.img_q.put(chunk)
 
     def mjpeg_generator(self, boundary):
       try:
         hdr = '--%s\r\nContent-Type: image/jpeg\r\n' % boundary
-        bio = io.BytesIO()
 
         prefix = ''
-        for foo in self.camera.capture_continuous(bio, format='jpeg', use_video_port=True):
-            msg = prefix + hdr + 'Content-Length: %d\r\n\r\n'.format(bio.tell())
-            bio.seek(0)
-            yield msg.encode('utf-8') + bio.read()
-            bio.seek(0)
-            bio.truncate()
+        while True:
+            chunk = self.img_q.get()
+            msg = prefix + hdr + 'Content-Length: %d\r\n\r\n'.format(len(chunk))
+            yield msg.encode('utf-8') + chunk
             prefix = '\r\n'
       except GeneratorExit:
          print('closed')
 
+    def get_snapshot(self):
+        chunk = self.img_q.get()
+        return flask.send_file(io.BytesIO(chunk), mimetype='image/jpg')
+
+    def get_mjpeg(self):
+        boundary='herebedragons'
+        return flask.Response(flask.stream_with_context(self.mjpeg_generator(boundary)), mimetype='multipart/x-mixed-replace;boundary=%s' % boundary)
+
     def run_forever(self):
         webcam_server_app = flask.Flask('webcam_server')
 
-        @webcam_server_app.route('/octoprint_anywhere/snapshot')
-        def get_snapshot():
-            output = self.capture_image()
-            output.seek(0)
-            return flask.send_file(output, mimetype='image/jpg')
+        @webcam_server_app.route('/')
+        def webcam():
+            action = flask.request.args['action']
+            if action == 'snapshot':
+                return self.get_snapshot()
+            else:
+                return self.get_mjpeg()
 
-        @webcam_server_app.route('/octoprint_anywhere/mjpeg')
-        def get_mjpeg():
-            boundary='herebedragons'
-            return flask.Response(flask.stream_with_context(self.mjpeg_generator(boundary)), mimetype='multipart/x-mixed-replace;boundary=%s' % boundary)
-
-        webcam_server_app.run(host='0.0.0.0', port=CAM_SERVER_PORT, threaded=True)
+        webcam_server_app.run(host='0.0.0.0', port=8080, threaded=True)
 
     def start(self):
         cam_server_thread = Thread(target=self.run_forever)
         cam_server_thread.daemon = True
         cam_server_thread.start()
+
+        capture_thread = Thread(target=self.capture_forever)
+        capture_thread.daemon = True
+        capture_thread.start()
 
 
 class H264Streamer:

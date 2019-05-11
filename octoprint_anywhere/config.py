@@ -7,8 +7,6 @@ from raven import breadcrumbs
 import sarge
 import os
 
-CAM_SERVER_PORT = 56720
-
 class Config:
 
     def __init__(self, plugin):
@@ -127,7 +125,7 @@ class Config:
             with open(save_file_path, 'w') as outfile:
                 yaml.dump({'snapshot_url': snapshot_url}, outfile, default_flow_style=False)
 
-        self.plugin._settings.global_set(snapshot_url_path, 'http://127.0.0.1:{}/octoprint_anywhere/snapshot'.format(CAM_SERVER_PORT), force=True)
+        self.plugin._settings.global_set(snapshot_url_path, 'http://127.0.0.1:8080/octoprint_anywhere/snapshot', force=True)
         self.plugin._settings.save(force=True)
 
         self.__items__['premium_video_enabled'] = True
