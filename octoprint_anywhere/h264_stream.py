@@ -7,7 +7,7 @@ import sarge
 import flask
 from collections import deque
 import Queue
-from threading import Thread
+from threading import Thread, RLock
 import requests
 import yaml
 
@@ -25,8 +25,11 @@ class WebcamServer:
     def __init__(self, camera):
         self.camera = camera
         self.img_q = Queue.Queue(maxsize=1)
+        self.last_capture = 0
+        self._mutex = RLock()
 
     def capture_forever(self):
+
         bio = io.BytesIO()
         for foo in self.camera.capture_continuous(bio, format='jpeg', use_video_port=True):
             bio.seek(0)
@@ -34,6 +37,11 @@ class WebcamServer:
             bio.seek(0)
             bio.truncate()
             self.img_q.put(chunk)
+
+            with self._mutex:
+                seconds_to_sleep = max(0.2 - (time.time() - self.last_capture), 0)
+                self.last_capture = time.time()
+            time.sleep(seconds_to_sleep)
 
     def mjpeg_generator(self, boundary):
       try:
@@ -49,7 +57,13 @@ class WebcamServer:
          print('closed')
 
     def get_snapshot(self):
-        chunk = self.img_q.get()
+        while True:
+            with self._mutex:
+                gap = time.time() - self.last_capture
+            if gap < 0.1:
+                break 
+            chunk = self.img_q.get()
+        
         return flask.send_file(io.BytesIO(chunk), mimetype='image/jpg')
 
     def get_mjpeg(self):
