@@ -139,7 +139,7 @@ class H264Streamer:
         # Stream timestamps should be reset when ffmepg restarts
         requests.delete(self.stream_host+'/video/mpegts', headers={"Authorization": "Bearer " + self.token})
 
-        ffmpeg_cmd = '{} -re -i pipe:0 -y -an -vcodec copy -f hls -hls_time 2 -hls_list_size 10 -hls_delete_threshold 10 -hls_flags split_by_time+delete_segments+second_level_segment_index -strftime 1 -hls_segment_filename {}/%s-%%d.ts -hls_segment_type mpegts -'.format(FFMPEG, TS_TEMP_DIR)
+        ffmpeg_cmd = '{} -re -i pipe:0 -y -an -vcodec copy -f hls -hls_time 10 -hls_list_size 10 -hls_delete_threshold 10 -hls_flags split_by_time+delete_segments+second_level_segment_index -strftime 1 -hls_segment_filename {}/%%d.ts -hls_segment_type mpegts -'.format(FFMPEG, TS_TEMP_DIR)
         _logger.info('Launching: ' + ffmpeg_cmd)
         sub_proc = subprocess.Popen(ffmpeg_cmd.split(' '), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
@@ -218,14 +218,16 @@ if __name__ == "__main__":
 
     from flask import Flask, request, Response, send_from_directory
     app = Flask(__name__)
+    app.DEBUG = True
 
     @app.route('/<path:path>')
     def send_js(path):
+        import random
+        time.sleep(random.randrange(10)/2.0)
         return send_from_directory(TS_TEMP_DIR, path)
 
-
     def start_server():
-        app.run(host='0.0.0.0', port=3333, threaded=False)
+        app.run(host='0.0.0.0', port=3333, threaded=True)
 
     @app.route('/livestream.m3u8')
     def livestream_m3u8():
@@ -238,7 +240,13 @@ if __name__ == "__main__":
 
         return resp
 
-    t2 = Thread(target=start_server)
-    t2.daemon = True
-    t2.start()
-    H264Streamer().start_hls_pipeline('asdf', {'watching': True})
+    ffmpeg_cmd = '{} -re -i pipe:0 -y -an -vcodec copy -f hls -hls_time 10 -hls_list_size 10 -hls_delete_threshold 10 -hls_flags split_by_time+delete_segments+second_level_segment_index -strftime 1 -hls_segment_filename {}/%s-%%d.ts -hls_segment_type mpegts {}'.format(FFMPEG, TS_TEMP_DIR, os.path.join(TS_TEMP_DIR, 'stream.m3u8'))
+    _logger.info('Launching: ' + ffmpeg_cmd)
+    sub_proc = subprocess.Popen(ffmpeg_cmd.split(' '), stdin=subprocess.PIPE)
+
+    import picamera
+    camera = picamera.PiCamera()
+    camera.framerate=25
+    camera.resolution=(640, 480)
+    camera.start_recording(sub_proc.stdin, format='h264', quality=23)
+    start_server()
