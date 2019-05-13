@@ -53,7 +53,7 @@ class WebcamServer:
         prefix = ''
         while True:
             chunk = self.img_q.get()
-            msg = prefix + hdr + 'Content-Length: %d\r\n\r\n'.format(len(chunk))
+            msg = prefix + hdr + 'Content-Length: {}\r\n\r\n'.format(len(chunk))
             yield msg.encode('utf-8') + chunk
             prefix = '\r\n'
       except GeneratorExit:
