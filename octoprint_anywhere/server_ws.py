@@ -4,18 +4,18 @@ import time
 import websocket
 
 class ServerSocket:
-    def on_error(self, ws, error):
-        pass
-
     def __init__(self, url, token, on_server_ws_msg):
         #websocket.enableTrace(True)
 
         def on_message(ws, msg):
             on_server_ws_msg(ws, msg)
 
+        def on_error(ws, error):
+            pass
+
         self.ws = websocket.WebSocketApp(url,
                                   on_message = on_message,
-                                  on_error = self.on_error,
+                                  on_error = on_error,
                                   header = ["Authorization: Bearer " + token],
                                   subprotocols=["binary", "base64"])
 
