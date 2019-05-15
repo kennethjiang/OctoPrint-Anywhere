@@ -71,7 +71,7 @@ class MessageLoop:
         backoff = ExpoBackoff(1200)
         while not self.should_quit():
             try:
-                self.ss = ServerSocket(self.config['ws_host'] + "/app/ws/device", self.config['token'], on_message=self.__on_server_ws_msg__)
+                self.ss = ServerSocket(self.config['ws_host'] + "/app/ws/device", self.config['token'], on_server_ws_msg=self.__on_server_ws_msg__)
                 wst = threading.Thread(target=self.ss.run)
                 wst.daemon = True
                 wst.start()

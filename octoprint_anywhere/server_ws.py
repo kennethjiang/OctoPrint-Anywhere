@@ -7,8 +7,12 @@ class ServerSocket:
     def on_error(self, ws, error):
         pass
 
-    def __init__(self, url, token, on_message):
+    def __init__(self, url, token, on_server_ws_msg):
         #websocket.enableTrace(True)
+
+        def on_message(ws, msg):
+            on_server_ws_msg(ws, msg)
+
         self.ws = websocket.WebSocketApp(url,
                                   on_message = on_message,
                                   on_error = self.on_error,
