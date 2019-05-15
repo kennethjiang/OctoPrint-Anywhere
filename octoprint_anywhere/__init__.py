@@ -32,7 +32,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     ##########
 
     def is_wizard_required(self):
-        return not self.config['registered']
+        return not self.get_config()['registered']
 
     def get_wizard_version(self):
         return 4
@@ -58,15 +58,15 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     def on_api_command(self, command, data):
         import flask
         if command == "reset_config":
-            old_token = self.config['token']
-            self.config.reset_config()
+            old_token = self.get_config()['token']
+            self.get_config().reset_config()
 
             self.main_loop.quit()
             self.start_main_thread()
 
-            return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}&copy_from={2}".format(self.config['api_host'], self.config['token'], old_token), registered=self.config['registered'])
+            return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}&copy_from={2}".format(self.get_config()['api_host'], self.get_config()['token'], old_token), registered=self.get_config()['registered'])
         elif command == "get_config":
-            return self.config.get_json()
+            return self.get_config().get_json()
 
     def get_update_information(self):
         # Define the configuration for your plugin to use with the Software Update
@@ -89,7 +89,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def on_after_startup(self):
-        self.config = Config(self)
+        self.get_config()
         self.start_main_thread()
 
 
@@ -97,7 +97,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def on_event(self, event, payload):
         # Event may be triggered before object is properly initialized
-        if not hasattr(self, 'main_loop') or not hasattr(self, 'config') or not self.config['registered']:
+        if not hasattr(self, 'main_loop') or not hasattr(self, 'config') or not self.get_config()['registered']:
             return
 
         if event.startswith("Print"):
@@ -106,25 +106,32 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     ## Internal functions
 
+    def get_config(self):
+        try:
+            return self.config
+        except AttributeError:
+            self.config = Config(self)
+            return self.config
+
     def start_main_thread(self):
         try:
             main_thread = threading.Thread(target=self.__run_message_loop__)
             main_thread.daemon = True
             main_thread.start()
         except:
-            self.config.sentry.captureException()
+            self.get_config().sentry.captureException()
             import traceback; traceback.print_exc()
 
     def __run_message_loop__(self):
         # Forever loop to block other server calls if token is registered with server
-        if (not self.config['registered']):
+        if (not self.get_config()['registered']):
             self.__probe_auth_token__()
-            self.config['registered'] = True
+            self.get_config()['registered'] = True
 
         dev_settings = self.__get_dev_settings__()
-        self.config.set_dev_settings(dev_settings)
+        self.get_config().set_dev_settings(dev_settings)
 
-        self.main_loop = MessageLoop(self.config, self)
+        self.main_loop = MessageLoop(self.get_config(), self)
         self.main_loop.run_until_quit()
 
     @backoff.on_exception(backoff.expo, Exception, max_value=120)
@@ -136,7 +143,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
     def __probe_auth_token__(self):
         while True:
             try:
-                requests.get(self.config['stream_host'] + "/api/ping", headers={"Authorization": "Bearer " + self.config['token']}).raise_for_status()
+                requests.get(self.get_config()['stream_host'] + "/api/ping", headers={"Authorization": "Bearer " + self.get_config()['token']}).raise_for_status()
                 return
             except:
                 time.sleep(5)
