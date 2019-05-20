@@ -11,7 +11,7 @@ class ServerSocket:
             on_server_ws_msg(ws, msg)
 
         def on_error(ws, error):
-            pass
+            print(error)
 
         self.ws = websocket.WebSocketApp(url,
                                   on_message = on_message,
