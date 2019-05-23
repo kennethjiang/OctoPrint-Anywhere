@@ -159,7 +159,7 @@ class H264Streamer:
 
         while True:
             if remote_status['watching']:
-                self.camera.start_recording(sub_proc.stdin, format='h264', quality=23)
+                self.camera.start_recording(sub_proc.stdin, format='h264', quality=(30 if 'high' in dev_settings.get('camResolution', 'medium') else 23))
                 while remote_status['watching']:
                     self.camera.wait_recording(2)
                 self.camera.wait_recording(4)   # record 4 more seconds to minimize the pause user views the stream again
