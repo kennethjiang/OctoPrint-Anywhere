@@ -106,6 +106,16 @@ class H264Streamer:
 
     def __init_camera__(self, plugin, dev_settings):
 
+        def resolution_tuple(resolution):
+            res_map = {
+                    "low": (320,240),
+                    "medium": (640, 480),
+                    "high": (1296, 972),
+                    "high_16_9": (1280, 720),
+                    "ultrahigh_16_9": (1920, 1080),
+                    }
+            return res_map[resolution]
+
         if not pi_version():
             self.camera = StubCamera()
             global FFMPEG
@@ -120,7 +130,7 @@ class H264Streamer:
             import picamera
             self.camera = picamera.PiCamera()
 	    self.camera.framerate=25
-	    self.camera.resolution=(640, 480)
+	    self.camera.resolution=resolution_tuple(dev_settings.get('camResolution', 'medium'))
 	    self.camera.hflip=dev_settings.get('flipH', False)
 	    self.camera.vflip=dev_settings.get('flipV', False)
 
