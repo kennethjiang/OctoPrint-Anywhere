@@ -30,7 +30,8 @@ class MjpegStream:
         with self._mutex:
             return self._should_quit
 
-    def stream_up(self, stream_host, token, printer, remote_status, settings, sentryClient):
+    def stream_up(self, stream_host, token, printer, remote_status, settings, config):
+        sentryClient = config.sentry
 
         class UpStream:
             def __init__(self, printer, settings):
@@ -45,7 +46,9 @@ class MjpegStream:
 
             def seconds_remaining_until_next_cycle(self):
                 cycle_in_seconds = 1.0/3.0 # Limit the bandwidth consumption to 3 frames/second
-                if not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:  # Printer idle
+                if config.premium_video_eligible():
+                    cycle_in_seconds = 20
+                elif not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:  # Printer idle
                     if self.remote_status['watching']:
                         cycle_in_seconds = 2
                     else:

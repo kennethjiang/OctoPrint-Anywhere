@@ -26,17 +26,18 @@ class MessageLoop:
         self.remote_status = RemoteStatus()
 
         self.ss = None
-        self.upstream = None
+        self.mjpeg_stream = None
         self.timelapse_uploader = None
         self.op_info = None
+        self.h264_stream = None
 
 
     def quit(self):
         with self._mutex:
             self._should_quit = True
 
-        if self.upstream:
-            self.upstream.quit()
+        if self.mjpeg_stream:
+            self.mjpeg_stream.quit()
         if self.timelapse_uploader:
             self.timelapse_uploader.quit()
 
@@ -49,18 +50,20 @@ class MessageLoop:
             stream_host = self.config['stream_host']
             token = self.config['token']
 
-            self.upstream = MjpegStream()
-            upstream_thread = threading.Thread(target=self.upstream.stream_up, args=(stream_host, token, self.plugin._printer, self.remote_status, self.plugin._settings.global_get(["webcam"]), self.config.sentry))
+            self.mjpeg_stream = MjpegStream()
+            mjpeg_stream_thread = threading.Thread(target=self.mjpeg_stream.stream_up, args=(stream_host, token, self.plugin._printer, self.remote_status, self.plugin._settings.global_get(["webcam"]), self.config))
 
             if self.config.premium_video_eligible():
                 if pi_version() or os.environ.get('CAM_SIM', False):
-                    self.upstream = H264Streamer(stream_host, token, self.config.sentry)
-                    upstream_thread = threading.Thread(target=self.upstream.start_hls_pipeline, args=(self.remote_status, self.plugin, self.config.dev_settings))
+                    self.h264_stream = H264Streamer(stream_host, token, self.config.sentry)
+                    h264_stream_thread = threading.Thread(target=self.h264_stream.start_hls_pipeline, args=(self.remote_status, self.plugin, self.config.dev_settings))
+                    h264_stream_thread.daemon = True
+                    h264_stream_thread.start()
                 else:
                     self.config.sentry.captureMessage('Premium video is enabled on a non-RPi platform: {}'.format(self.config['token']))
 
-            upstream_thread.daemon = True
-            upstream_thread.start()
+            mjpeg_stream_thread.daemon = True
+            mjpeg_stream_thread.start()
 
             self.timelapse_uploader = Timelapse()
             timelapse_upload_thread = threading.Thread(target=self.timelapse_uploader.upload_timelapses, args=(stream_host, token, self.plugin._settings.settings.getBaseFolder("timelapse")))
