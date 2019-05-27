@@ -113,6 +113,8 @@ class MessageLoop:
                 self.plugin._printer.cancel_print()
             elif cmd == 'resume':
                 self.plugin._printer.resume_print()
+            elif isinstance(cmd, dict) and 'start' in cmd:
+                self.plugin.start_print(cmd['start'])
 
         def __process_temps_cmd__(cmd):
             if 'set' in cmd:
@@ -133,7 +135,7 @@ class MessageLoop:
                     __process_temps_cmd__(v)
                 if k == 'jog':
                     __process_jog_cmd__(v)
-                elif k == 'watching':
+                if k == 'watching':
                     self.remote_status['watching'] = v == 'True'
 
         msgDict = json.loads(msg)
@@ -187,3 +189,9 @@ class MessageLoop:
                     }
                 }
 
+    def __download_and_print__(self, file_url, file_name):
+	r = requests.get(file_url, allow_redirects=True)
+	r.raise_for_status()
+	target_path = os.path.join(self._g_code_folder, file_name)
+	open(target_path, "wb").write(r.content)
+	self.plugin._printer.select_file(target_path, False, printAfterSelect=True)

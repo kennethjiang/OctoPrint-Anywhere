@@ -13,6 +13,8 @@ from raven import breadcrumbs
 from .message_loop import MessageLoop
 from .config import Config
 
+PRINTQ_FOLDER = "OctoPrint-Anywhere"
+
 class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.AssetPlugin,
                      octoprint.plugin.EventHandlerPlugin,
@@ -20,6 +22,9 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.StartupPlugin,
                      octoprint.plugin.SimpleApiPlugin,
                      octoprint.plugin.WizardPlugin,):
+
+    def __init__(self):
+        self.current_gcodefile_id = None
 
     ##~~ AssetPlugin mixin
     def get_assets(self):
@@ -90,6 +95,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def on_after_startup(self):
         self.get_config()
+        self.__ensure_storage__()
         self.start_main_thread()
 
 
@@ -101,6 +107,13 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if event.startswith("Print"):
+
+            if self.current_gcodefile_id:
+                payload['gcodefile_id'] = self.current_gcodefile_id
+
+            if event == 'PrintFailed' or event == 'PrintDone':
+                self.current_gcodefile_id = None
+
             self.main_loop.send_octoprint_data(event, payload)
 
 
@@ -147,6 +160,26 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 return
             except:
                 time.sleep(5)
+
+    def start_print(self, print_to_start):
+        self.current_gcodefile_id = print_to_start['id']
+        file_url = print_to_start['url']
+        file_name = print_to_start['filename']
+        print_thread = threading.Thread(target=self.__download_and_print__, args=(file_url, file_name))
+        print_thread.daemon = True
+        print_thread.start()
+
+    def __download_and_print__(self, file_url, file_name):
+        self.main_loop.send_octoprint_data('DownloadStarted', {'gcodefile_id': self.current_gcodefile_id})
+        r = requests.get(file_url, allow_redirects=True)
+        r.raise_for_status()
+        target_path = os.path.join(self._g_code_folder, file_name)
+        open(target_path, "wb").write(r.content)
+        self._printer.select_file(target_path, False, printAfterSelect=True)
+
+    def __ensure_storage__(self):
+        self._file_manager.add_folder("local", PRINTQ_FOLDER, ignore_existing=True)
+        self._g_code_folder = self._file_manager.path_on_disk("local", PRINTQ_FOLDER)
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
