@@ -193,7 +193,7 @@ class StubCamera:
 
     def __init__(self):
         from itertools import cycle
-        h264s_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'h264s')
+        h264s_path = '/mjpg-streamer/h264s'
         h264s = map(lambda x: os.path.join(h264s_path, x), sorted(os.listdir(h264s_path)))
         self.h264_files = cycle(h264s)
         self.running = False

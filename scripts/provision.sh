@@ -22,7 +22,9 @@ fi
 cd /mjpg-streamer/
 sudo cp -r mjpg-streamer-experimental/* .
 sudo make
-sudo cp -r $WD/jpgs /mjpg-streamer/
+
+sudo wget https://storage.googleapis.com/prod-pub-static/octoprint-anywhere-pics.tgz
+sudo tar zxvf octoprint-anywhere-pics.tgz
 
 sudo cp $WD/scripts/rc.local /etc/
 
