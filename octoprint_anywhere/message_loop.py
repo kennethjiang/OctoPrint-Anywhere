@@ -50,9 +50,6 @@ class MessageLoop:
             stream_host = self.config['stream_host']
             token = self.config['token']
 
-            self.mjpeg_stream = MjpegStream()
-            mjpeg_stream_thread = threading.Thread(target=self.mjpeg_stream.stream_up, args=(stream_host, token, self.plugin._printer, self.remote_status, self.plugin._settings.global_get(["webcam"]), self.config))
-
             if self.config.premium_video_eligible():
                 if pi_version() or os.environ.get('CAM_SIM', False):
                     self.h264_stream = H264Streamer(stream_host, token, self.config.sentry)
@@ -62,6 +59,8 @@ class MessageLoop:
                 else:
                     self.config.sentry.captureMessage('Premium video is enabled on a non-RPi platform: {}'.format(self.config['token']))
 
+            self.mjpeg_stream = MjpegStream()
+            mjpeg_stream_thread = threading.Thread(target=self.mjpeg_stream.stream_up, args=(stream_host, token, self.plugin._printer, self.remote_status, self.plugin._settings.global_get(["webcam"]), self.config))
             mjpeg_stream_thread.daemon = True
             mjpeg_stream_thread.start()
 
