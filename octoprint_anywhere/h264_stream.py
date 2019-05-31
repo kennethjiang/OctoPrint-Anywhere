@@ -125,22 +125,25 @@ class H264Streamer:
         else:
             sarge.run('sudo service webcamd stop')
 
-            import picamera
-            self.camera = picamera.PiCamera()
-	    self.camera.framerate=25
-	    self.camera.resolution=resolution_tuple(dev_settings)
-	    self.camera.hflip=dev_settings.get('flipH', False)
-	    self.camera.vflip=dev_settings.get('flipV', False)
+            try:
+                import picamera
+                self.camera = picamera.PiCamera()
+	        self.camera.framerate=25
+	        self.camera.resolution=resolution_tuple(dev_settings)
+	        self.camera.hflip=dev_settings.get('flipH', False)
+	        self.camera.vflip=dev_settings.get('flipV', False)
 
-            rotation = (90 if dev_settings.get('rotate90', False) else 0)
-            rotation += (-90 if dev_settings.get('rotate90N', False) else 0)
-	    self.camera.rotation=rotation
+                rotation = (90 if dev_settings.get('rotate90', False) else 0)
+                rotation += (-90 if dev_settings.get('rotate90N', False) else 0)
+	        self.camera.rotation=rotation
 
-
-        self.camera.start_preview()
+                self.camera.start_preview()
+            except:
+	        arge.run('sudo service webcamd start')   # failed to start picamera. falling back to mjpeg-streamer
 
     def start_hls_pipeline(self, remote_status, plugin, dev_settings):
-        self.__init_camera__(plugin, dev_settings)
+        if not self.__init_camera__(plugin, dev_settings):
+            return
 
         self.webcam_server = WebcamServer(self.camera)
         self.webcam_server.start()
