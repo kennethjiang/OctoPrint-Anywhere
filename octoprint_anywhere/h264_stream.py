@@ -143,6 +143,8 @@ class H264Streamer:
                 plugin.picamera_error = True
                 self.sentryClient.captureException()
                 import traceback; traceback.print_exc()
+                return False
+        return True
 
     def start_hls_pipeline(self, remote_status, plugin, dev_settings):
         if not self.__init_camera__(plugin, dev_settings):
