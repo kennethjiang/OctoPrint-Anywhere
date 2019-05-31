@@ -45,6 +45,31 @@ function AnywhereViewModel(parameters) {
         });
     };
 
+    self.onDataUpdaterPluginMessage = function(plugin, data) {
+        if (plugin != "anywhere") {
+            return;
+        }
+
+        if (data.error_type == "picamera") {
+            new PNotify({
+                title: "OctoPrint Anywhere",
+                text: "Pi Camera failed to init",
+                type: "error",
+                hide: false,
+                confirm: {
+                    confirm: true,
+                    buttons: [
+                        {
+                            text: "Got It!",
+                            click: function(notice) {
+                                notice.remove();
+                            }
+                        },
+                    ]
+                },
+            });
+        };
+    }
 }
 
 
