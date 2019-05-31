@@ -32,7 +32,7 @@ function AnywhereViewModel(parameters) {
         if (configResp.picamera_error) {
             new PNotify({
                 title: "OctoPrint Anywhere",
-                text: "Failed to detect and turn on Pi Camera. Please make sure it is plugged in properly.",
+                text: "Failed to detect and turn on Pi Camera. Webcam feed will be streaming at 3 FPS. If you want 24 FPS streaming, please make sure Pi Camera is plugged in correctly.",
                 type: "error",
                 hide: false,
             });
