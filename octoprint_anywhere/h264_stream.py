@@ -140,6 +140,9 @@ class H264Streamer:
                 self.camera.start_preview()
             except:
 	        arge.run('sudo service webcamd start')   # failed to start picamera. falling back to mjpeg-streamer
+                plugin.picamera_error = True
+                self.sentryClient.captureException()
+                import traceback; traceback.print_exc()
 
     def start_hls_pipeline(self, remote_status, plugin, dev_settings):
         if not self.__init_camera__(plugin, dev_settings):

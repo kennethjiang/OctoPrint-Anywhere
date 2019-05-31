@@ -29,6 +29,14 @@ function AnywhereViewModel(parameters) {
     var setConfigVars = function(configResp) {
         self.regUrl(configResp.reg_url);
         self.registered(configResp.registered);
+        if (configResp.picamera_error) {
+            new PNotify({
+                title: "OctoPrint Anywhere",
+                text: "Failed to detect and turn on Pi Camera. Please make sure it is plugged in properly.",
+                type: "error",
+                hide: false,
+            });
+        }
     };
 
     apiCommand({command: 'get_config'}, setConfigVars);
@@ -44,32 +52,6 @@ function AnywhereViewModel(parameters) {
             }, 500);
         });
     };
-
-    self.onDataUpdaterPluginMessage = function(plugin, data) {
-        if (plugin != "anywhere") {
-            return;
-        }
-
-        if (data.error_type == "picamera") {
-            new PNotify({
-                title: "OctoPrint Anywhere",
-                text: "Pi Camera failed to init",
-                type: "error",
-                hide: false,
-                confirm: {
-                    confirm: true,
-                    buttons: [
-                        {
-                            text: "Got It!",
-                            click: function(notice) {
-                                notice.remove();
-                            }
-                        },
-                    ]
-                },
-            });
-        };
-    }
 }
 
 

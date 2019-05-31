@@ -98,6 +98,5 @@ class Config:
     def premium_video_eligible(self):
         return self.dev_settings.get('premium_video', False)
 
-    def get_json(self):
-        import flask
-        return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}".format(self['api_host'], self['token']), registered=self['registered'])
+    def as_dict(self):
+        return dict(reg_url="{0}/pub/link_printer?token={1}".format(self['api_host'], self['token']), registered=self['registered'])

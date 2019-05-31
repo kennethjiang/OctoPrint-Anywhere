@@ -25,6 +25,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
     def __init__(self):
         self.current_gcodefile_id = None
+        self.picamera_error = False
 
     ##~~ AssetPlugin mixin
     def get_assets(self):
@@ -71,7 +72,9 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 
             return flask.jsonify(reg_url="{0}/pub/link_printer?token={1}&copy_from={2}".format(self.get_config()['api_host'], self.get_config()['token'], old_token), registered=self.get_config()['registered'])
         elif command == "get_config":
-            return self.get_config().get_json()
+            conf = self.get_config().as_dict()
+            conf.update(dict(picamera_error=self.picamera_error))
+            return flask.jsonify(conf)
 
     def get_update_information(self):
         # Define the configuration for your plugin to use with the Software Update
