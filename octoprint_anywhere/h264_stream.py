@@ -124,10 +124,6 @@ class H264Streamer:
             FFMPEG = 'ffmpeg'
         else:
             sarge.run('sudo service webcamd stop')
-            if not os.environ.get('CAM_SIM', False):
-                r = sarge.run('/home/pi/oprint/bin/python -m pip install picamera', stderr=sarge.Capture())
-                if not r.returncode == 0:
-                    raise Exception(r.stderr.text)
 
             import picamera
             self.camera = picamera.PiCamera()
