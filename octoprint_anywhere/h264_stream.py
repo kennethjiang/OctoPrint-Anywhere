@@ -10,6 +10,7 @@ import Queue
 from threading import Thread, RLock
 import requests
 import yaml
+from raven import breadcrumbs
 
 from .utils import pi_version
 
@@ -185,6 +186,7 @@ class H264Streamer:
 
     def upload_mpegts_to_server(self, mpegts):
         try:
+            breadcrumbs.record(message="Token to upload mpegts: " + self.token)
             files = {'file': ('ts', open(mpegts), 'rb')}
             r = requests.post(self.stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + self.token})
             r.raise_for_status()

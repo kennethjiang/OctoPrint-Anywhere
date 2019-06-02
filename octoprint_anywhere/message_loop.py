@@ -168,6 +168,7 @@ class MessageLoop:
             self.ss.send_text(json.dumps({
                 'hb': {
                     'ipAddrs': self.op_info['ip_addrs'],
+                    'port': self.plugin.octoprint_port,
                     'settings': self.op_info['settings'],
                     'octolapse': self.op_info['octolapse'],
                 },

@@ -96,6 +96,9 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             )
         )
 
+    def on_startup(self, host, port):
+        self.octoprint_port = port if port else self._settings.getInt(["server", "port"])
+
     def on_after_startup(self):
         self.get_config()
         self.__ensure_storage__()
