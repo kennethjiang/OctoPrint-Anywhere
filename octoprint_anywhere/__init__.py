@@ -9,6 +9,7 @@ import time
 import requests
 import backoff
 from raven import breadcrumbs
+import logging
 
 from .message_loop import MessageLoop
 from .config import Config
@@ -24,6 +25,8 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.WizardPlugin,):
 
     def __init__(self):
+        self._logger = logging.getLogger(__name__)
+
         self.current_gcodefile_id = None
         self.picamera_error = False
 
@@ -168,6 +171,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 time.sleep(5)
 
     def start_print(self, print_to_start):
+        self._logger.info('Received print command for gcodfile_id: {} '.format(print_to_start['id']))
         self.current_gcodefile_id = print_to_start['id']
         file_url = print_to_start['url']
         file_name = print_to_start['filename']
@@ -181,6 +185,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         r.raise_for_status()
         target_path = os.path.join(self._g_code_folder, file_name)
         open(target_path, "wb").write(r.content)
+        self._logger.info('Finished downloading to target_path: {}'.format(target_path))
         self._printer.select_file(target_path, False, printAfterSelect=True)
 
     def __ensure_storage__(self):
