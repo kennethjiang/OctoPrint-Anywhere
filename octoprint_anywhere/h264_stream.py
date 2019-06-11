@@ -29,13 +29,11 @@ class WebcamServer:
         self._frame_lock = Condition()
         self._frame_requests = 0
         self._frame_requested_lock = Condition()
-        self.ts = time.time() 
-        
+
     def capture_forever(self):
 
         bio = io.BytesIO()
         for foo in self.camera.capture_continuous(bio, format='jpeg'):
-            print("top: ", time.time() - self.ts)
             bio.seek(0)
             chunk = bio.read()
             bio.seek(0)
@@ -45,12 +43,10 @@ class WebcamServer:
                 self._frame = chunk
                 self._frame_lock.notify_all()
 
-                ts_wait_start = time.time() 
-                print("capture before wait: ", time.time() - self.ts)
+                ts_wait_start = time.time()
                 while self._frame:
                     self._frame_lock.wait(5.0)
 
-                    print("capture after wait: ", time.time() - self.ts)
                     if time.time() - ts_wait_start > 5.0:  # Have waited for more than 5s for consumer thread to consume frame. Some consumer threads have erred out
                         with self._frame_requested_lock:
                             self._frame_requests = 0
@@ -59,11 +55,9 @@ class WebcamServer:
             with self._frame_requested_lock:
                 while self._frame_requests <= 0:   # Wait for the next request to come in
                     self._frame_requested_lock.wait()
-            self.ts = time.time() 
+            self.ts = time.time()
 
     def get_frame(self):
-
-        print("consume before wait: ", time.time() - self.ts)
         with self._frame_requested_lock:
             self._frame_requests += 1
             self._frame_requested_lock.notify_all()
@@ -74,18 +68,16 @@ class WebcamServer:
 
             frame = self._frame
 
-        print("consume after wait: ", time.time() - self.ts, len(frame))
         with self._frame_requested_lock:
             self._frame_requests -= 1
-     
+
             if self._frame_requests <= 0:
                 self._frame_requests = 0
-                
+
                 with self._frame_lock:
                     self._frame = None
                     self._frame_lock.notify_all()
-                            
-        print("consume after done: ", time.time() - self.ts)
+
         return frame
 
     def mjpeg_generator(self, boundary):
