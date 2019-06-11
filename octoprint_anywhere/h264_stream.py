@@ -6,11 +6,11 @@ import time
 import sarge
 import flask
 from collections import deque
-from threading import Thread, RLock, Condition
+import Queue
+from threading import Thread, RLock
 import requests
 import yaml
 from raven import breadcrumbs
-import sys
 
 from .utils import pi_version
 
@@ -25,60 +25,24 @@ if not os.path.exists(TS_TEMP_DIR):
 class WebcamServer:
     def __init__(self, camera):
         self.camera = camera
-        self._frame = None
-        self._frame_lock = Condition()
-        self._frame_requests = 0
-        self._frame_requested_lock = Condition()
+        self.img_q = Queue.Queue(maxsize=1)
+        self.last_capture = 0
+        self._mutex = RLock()
 
     def capture_forever(self):
 
         bio = io.BytesIO()
-        for foo in self.camera.capture_continuous(bio, format='jpeg'):
+        for foo in self.camera.capture_continuous(bio, format='jpeg', use_video_port=True):
             bio.seek(0)
             chunk = bio.read()
             bio.seek(0)
             bio.truncate()
 
-            with self._frame_lock:
-                self._frame = chunk
-                self._frame_lock.notify_all()
+            with self._mutex:
+                last_last_capture = self.last_capture
+                self.last_capture = time.time()
 
-                ts_wait_start = time.time()
-                while self._frame:
-                    self._frame_lock.wait(5.0)
-
-                    if time.time() - ts_wait_start > 5.0:  # Have waited for more than 5s for consumer thread to consume frame. Some consumer threads have erred out
-                        with self._frame_requested_lock:
-                            self._frame_requests = 0
-                            self._frame = None
-
-            with self._frame_requested_lock:
-                while self._frame_requests <= 0:   # Wait for the next request to come in
-                    self._frame_requested_lock.wait()
-            self.ts = time.time()
-
-    def get_frame(self):
-        with self._frame_requested_lock:
-            self._frame_requests += 1
-            self._frame_requested_lock.notify_all()
-
-        with self._frame_lock:
-            while not self._frame:
-                self._frame_lock.wait(5.0)
-
-            frame = self._frame
-
-        with self._frame_requested_lock:
-            self._frame_requests -= 1
-
-            if self._frame_requests <= 0:
-                self._frame_requests = 0
-
-                with self._frame_lock:
-                    self._frame = None
-                    self._frame_lock.notify_all()
-
-        return frame
+            self.img_q.put(chunk)
 
     def mjpeg_generator(self, boundary):
       try:
@@ -86,16 +50,26 @@ class WebcamServer:
 
         prefix = ''
         while True:
-            chunk = self.get_frame()
+            chunk = self.img_q.get()
             msg = prefix + hdr + 'Content-Length: {}\r\n\r\n'.format(len(chunk))
             yield msg.encode('utf-8') + chunk
-            time.sleep(0.2)
             prefix = '\r\n'
+            time.sleep(0.15) # slow down mjpeg streaming so that it won't use too much cpu or bandwidth
       except GeneratorExit:
-         pass
+         print('closed')
 
     def get_snapshot(self):
-        return flask.send_file(io.BytesIO(self.get_frame()), mimetype='image/jpeg')
+        possible_stale_pics = 3
+        while True:
+            chunk = self.img_q.get()
+            with self._mutex:
+                gap = time.time() - self.last_capture
+                if gap < 0.1:
+                    possible_stale_pics -= 1      # Get a few pics to make sure we are not returning a stale pic, which will throw off Octolapse
+                    if possible_stale_pics <= 0:
+                        break
+
+        return flask.send_file(io.BytesIO(chunk), mimetype='image/jpeg')
 
     def get_mjpeg(self):
         boundary='herebedragons'
