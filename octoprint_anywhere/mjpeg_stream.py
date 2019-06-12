@@ -34,8 +34,9 @@ class MjpegStream:
         sentryClient = config.sentry
 
         class UpStream:
-            def __init__(self, printer, settings):
+            def __init__(self, printer, settings, config):
                  self.settings = settings
+                 self.config = config
                  self.last_reconnect_ts = datetime.now()
                  self.printer = printer
                  self.remote_status = remote_status
@@ -56,11 +57,11 @@ class MjpegStream:
                 else:
                     if not self.remote_status['watching']:
                         cycle_in_seconds = 10
-                return cycle_in_seconds-(datetime.now() - self.last_frame_ts).total_seconds()
+                return cycle_in_seconds * config.mjpeg_stream_tier() - (datetime.now() - self.last_frame_ts).total_seconds()
 
 
             def next(self):
-                if (datetime.now() - self.last_reconnect_ts).total_seconds() < 60: # Allow connection to last up to 60s
+                if (datetime.now() - self.last_reconnect_ts).total_seconds() < 600: # Allow connection to last up to 600s
                     try:
                         while self.seconds_remaining_until_next_cycle() > 0:
                             time.sleep(0.1)
@@ -79,8 +80,8 @@ class MjpegStream:
         while not self.should_quit():
             try:
                 breadcrumbs.record(message="New UpStream: " + token)
-                stream = UpStream(printer, settings)
-                requests.post(stream_host + "/video", data=stream, headers={"Authorization": "Bearer " + token}).raise_for_status()
+                stream = UpStream(printer, settings, config)
+                requests.post(stream_host + "/video/mjpegs", data=stream, headers={"Authorization": "Bearer " + token}).raise_for_status()
                 backoff.reset()
             except Exception, e:
                 _logger.error(e)

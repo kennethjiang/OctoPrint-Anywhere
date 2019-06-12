@@ -132,10 +132,13 @@ class MessageLoop:
                     __process_job_cmd__(v)
                 if k == 'temps':
                     __process_temps_cmd__(v)
+                    time.sleep(0.1)  # setting temp will take a bit of time to be reflected in the status. wait for it
+                    self.send_octoprint_data()
                 if k == 'jog':
                     __process_jog_cmd__(v)
                 if k == 'watching':
                     self.remote_status['watching'] = v == 'True'
+                    self.send_octoprint_data() # send current status as soon as someone is watching
 
         msgDict = json.loads(msg)
         for k, v in msgDict.iteritems():
