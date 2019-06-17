@@ -138,7 +138,8 @@ class MessageLoop:
                     __process_jog_cmd__(v)
                 if k == 'watching':
                     self.remote_status['watching'] = v == 'True'
-                    self.send_octoprint_data() # send current status as soon as someone is watching
+                    # comment out this line as current server will send watching cmd on every msg, causing a loop
+                    # self.send_octoprint_data() # send current status as soon as someone is watching
 
         msgDict = json.loads(msg)
         for k, v in msgDict.iteritems():
