@@ -141,7 +141,7 @@ class H264Streamer:
 
                 self.camera.start_preview()
             except:
-	        arge.run('sudo service webcamd start')   # failed to start picamera. falling back to mjpeg-streamer
+	        sarge.run('sudo service webcamd start')   # failed to start picamera. falling back to mjpeg-streamer
                 plugin.picamera_error = True
                 self.sentryClient.captureException()
                 import traceback; traceback.print_exc()
@@ -149,6 +149,8 @@ class H264Streamer:
         return True
 
     def start_hls_pipeline(self, remote_status, plugin, dev_settings):
+        breadcrumbs.record(message="Token to upload mpegts: " + self.token)
+
         if not self.__init_camera__(plugin, dev_settings):
             return
 
@@ -187,7 +189,6 @@ class H264Streamer:
 
     def upload_mpegts_to_server(self, mpegts):
         try:
-            breadcrumbs.record(message="Token to upload mpegts: " + self.token)
             files = {'file': ('ts', open(mpegts), 'rb')}
             r = requests.post(self.stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + self.token})
             r.raise_for_status()
