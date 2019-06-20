@@ -99,7 +99,14 @@ class Config:
         return self.dev_settings.get('premium_video', False)
 
     def mjpeg_stream_tier(self):
-        return self.dev_settings.get('mjpeg_stream_tier', 20)
+        return self.dev_settings.get('mjpeg_stream_tier', 10)
+
+    def set_picamera_error(self, error=True):
+        self._picamera_error = error
+
+    def picamera_error(self):
+        return hasattr(self, '_picamera_error') and self._picamera_error
+
 
     def as_dict(self):
         return dict(reg_url="{0}/pub/link_printer?token={1}".format(self['api_host'], self['token']), registered=self['registered'])

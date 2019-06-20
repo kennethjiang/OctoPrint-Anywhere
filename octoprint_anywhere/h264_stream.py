@@ -142,7 +142,7 @@ class H264Streamer:
                 self.camera.start_preview()
             except:
 	        sarge.run('sudo service webcamd start')   # failed to start picamera. falling back to mjpeg-streamer
-                plugin.picamera_error = True
+                plugin.config.set_picamera_error(True)
                 self.sentryClient.captureException()
                 import traceback; traceback.print_exc()
                 return False

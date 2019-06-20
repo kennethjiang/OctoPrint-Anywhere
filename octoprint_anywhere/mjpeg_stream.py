@@ -47,9 +47,7 @@ class MjpegStream:
 
             def seconds_remaining_until_next_cycle(self):
                 cycle_in_seconds = 1.0/3.0 # Limit the bandwidth consumption to 3 frames/second
-                if config.premium_video_eligible():
-                    cycle_in_seconds = 20
-                elif not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:  # Printer idle
+                if not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:  # Printer idle
                     if self.remote_status['watching']:
                         cycle_in_seconds = 2
                     else:
@@ -57,8 +55,14 @@ class MjpegStream:
                 else:
                     if not self.remote_status['watching']:
                         cycle_in_seconds = 10
-                return cycle_in_seconds * config.mjpeg_stream_tier() - (datetime.now() - self.last_frame_ts).total_seconds()
 
+                if not config.premium_video_eligible():
+                    cycle_in_seconds *= config.mjpeg_stream_tier()
+                else:
+                    if not config.picamera_error():
+                        cycle_in_seconds = 20
+
+                return cycle_in_seconds - (datetime.now() - self.last_frame_ts).total_seconds()
 
             def next(self):
                 if (datetime.now() - self.last_reconnect_ts).total_seconds() < 600: # Allow connection to last up to 600s
