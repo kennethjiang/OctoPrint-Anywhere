@@ -74,8 +74,9 @@ except:
 import sys
 is_rpi = False
 try:
-    if open('/sys/firmware/devicetree/base/model').read().find('Raspberry Pi') > -1:
-        is_rpi = True
+    with open('/sys/firmware/devicetree/base/model', 'r') as firmware_model:
+        if firmware_model.read().find('Raspberry Pi') > -1:
+            is_rpi = True
 except:
      pass
 if is_rpi and not hasattr(sys, 'pypy_version_info'):
