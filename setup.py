@@ -71,10 +71,14 @@ except:
 	import sys
 	sys.exit(-1)
 
-import distutils.util
 import sys
-plat = distutils.util.get_platform().replace('.', '_').replace('-', '_')
-if plat in ['linux_armv7l', 'linux_armv6l'] and not hasattr(sys, 'pypy_version_info'):
+is_rpi = False
+try:
+    if open('/sys/firmware/devicetree/base/model').read().find('Raspberry Pi') > -1:
+        is_rpi = True
+except:
+     pass
+if is_rpi and not hasattr(sys, 'pypy_version_info'):
 	plugin_requires += [ 'picamera==1.13' ]
 
 setup_parameters = octoprint_setuptools.create_plugin_setup_parameters(
