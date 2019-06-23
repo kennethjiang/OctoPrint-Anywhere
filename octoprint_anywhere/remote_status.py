@@ -6,7 +6,7 @@ class RemoteStatus:
 
     def __init__(self):
         self._mutex = threading.RLock()
-        self.__items__ = {"watching": False}
+        self.__items__ = {"watching": False, "burst_count": 0}
 
     def __getitem__(self, key):
         with self._mutex:

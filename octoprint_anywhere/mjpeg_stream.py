@@ -46,6 +46,10 @@ class MjpegStream:
                 return self
 
             def seconds_remaining_until_next_cycle(self):
+                if self.remote_status['burst_count'] > 0:
+                    self.remote_status['burst_count'] = self.remote_status['burst_count'] - 1
+                    return 0
+
                 cycle_in_seconds = 1.0/3.0 # Limit the bandwidth consumption to 3 frames/second
                 if not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:  # Printer idle
                     if self.remote_status['watching']:
