@@ -120,7 +120,7 @@ class MessageLoop:
                 self.plugin._printer.set_temperature(cmd['set']['heater'], cmd['set']['target'])
 
         def __process_jog_cmd__(cmd):
-            self.remote_status['burst_count'] = 3    # send 3 continous snapshots to make jogging more responsive
+            self.remote_status['burst_count'] = 5    # send 5 continous snapshots to make jogging more responsive
             axis = cmd.keys()[0]
             if isinstance(cmd[axis], int):
                 self.plugin._printer.jog(cmd)
@@ -139,7 +139,8 @@ class MessageLoop:
                     __process_jog_cmd__(v)
                 if k == 'watching':
                     self.remote_status['watching'] = v == 'True'
-                    self.send_octoprint_data() # send current status as soon as someone is watching
+                    # comment out this line as current server will send watching cmd on every msg, causing a loop
+                    # self.send_octoprint_data() # send current status as soon as someone is watching
 
         msgDict = json.loads(msg)
         for k, v in msgDict.iteritems():
