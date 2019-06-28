@@ -11,6 +11,7 @@ from threading import Thread, RLock
 import requests
 import yaml
 from raven import breadcrumbs
+import tempfile
 
 from .utils import pi_version
 
@@ -18,7 +19,7 @@ _logger = logging.getLogger(__name__)
 
 FFMPEG = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'ffmpeg')
 
-TS_TEMP_DIR = '/tmp/octoprintanywhere-ts'
+TS_TEMP_DIR = os.path.join(tempfile.gettempdir(), 'octoprintanywhere-ts')
 if not os.path.exists(TS_TEMP_DIR):
     os.mkdir(TS_TEMP_DIR)
 
