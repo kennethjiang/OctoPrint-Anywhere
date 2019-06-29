@@ -5,6 +5,7 @@ import threading
 import requests
 import time
 import json
+import logging
 import os
 from raven import breadcrumbs
 
@@ -14,6 +15,8 @@ from .timelapse import Timelapse
 from .server_ws import ServerSocket
 from .remote_status import RemoteStatus
 from .utils import ip_addr, ExpoBackoff, pi_version
+
+_logger = logging.getLogger('octoprint.plugins.anywhere')
 
 class MessageLoop:
 
@@ -51,12 +54,14 @@ class MessageLoop:
             token = self.config['token']
 
             if self.config.premium_video_eligible():
+                _logger.info('Printer is eligible for premium video streaming.')
                 if pi_version() or os.environ.get('CAM_SIM', False):
                     self.h264_stream = H264Streamer(stream_host, token, self.config.sentry)
                     h264_stream_thread = threading.Thread(target=self.h264_stream.start_hls_pipeline, args=(self.remote_status, self.plugin, self.config.dev_settings))
                     h264_stream_thread.daemon = True
                     h264_stream_thread.start()
                 else:
+                    _logger.error('Premium video is enabled on a non-RPi platform: ')
                     self.config.sentry.captureMessage('Premium video is enabled on a non-RPi platform: {}'.format(self.config['token']))
 
             self.mjpeg_stream = MjpegStream()

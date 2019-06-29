@@ -14,7 +14,7 @@ from raven import breadcrumbs
 import backoff
 from .utils import ExpoBackoff
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger('octoprint.plugins.anywhere')
 
 class MjpegStream:
 

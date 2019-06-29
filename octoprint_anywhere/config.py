@@ -22,7 +22,7 @@ class Config:
 
         try:
             self.config_path = self.plugin.get_plugin_data_folder() + "/.config.yaml"
-            self._logger = logging.getLogger(__name__)
+            self._logger = logging.getLogger('octoprint.plugins.anywhere')
             self.load_config()
         except:
             self.sentry.captureException()

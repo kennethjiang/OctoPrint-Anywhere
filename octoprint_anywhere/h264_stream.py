@@ -4,6 +4,7 @@ import logging
 import subprocess
 import time
 import sarge
+import sys
 import flask
 from collections import deque
 import Queue
@@ -15,7 +16,7 @@ import tempfile
 
 from .utils import pi_version
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger('octoprint.plugins.anywhere')
 
 FFMPEG = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'ffmpeg')
 
@@ -145,7 +146,8 @@ class H264Streamer:
 	        sarge.run('sudo service webcamd start')   # failed to start picamera. falling back to mjpeg-streamer
                 plugin.config.set_picamera_error(True)
                 self.sentryClient.captureException()
-                import traceback; traceback.print_exc()
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                _logger.error(exc_obj)
                 return False
         return True
 
@@ -195,7 +197,8 @@ class H264Streamer:
             r.raise_for_status()
         except:
             self.sentryClient.captureException()
-            import traceback; traceback.print_exc()
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            _logger.error(exc_obj)
 
 
 class StubCamera:

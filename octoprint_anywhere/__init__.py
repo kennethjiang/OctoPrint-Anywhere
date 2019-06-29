@@ -25,8 +25,6 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.WizardPlugin,):
 
     def __init__(self):
-        self._logger = logging.getLogger(__name__)
-
         self.current_gcodefile_id = None
 
     ##~~ AssetPlugin mixin
