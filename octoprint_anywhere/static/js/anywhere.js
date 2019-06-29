@@ -32,7 +32,7 @@ function AnywhereViewModel(parameters) {
         self.regUrl(configResp.reg_url);
         self.registered(configResp.registered);
         var picameraErrorAcked = localStorage.getItem("octoprint_anywhere.picameraErrorAcked");
-        if (configResp.picamera_error) && !picameraErrorAcked) {
+        if (configResp.picamera_error && !picameraErrorAcked) {
             new PNotify({
                 title: "OctoPrint Anywhere",
                 text: "<p>Failed to detect and turn on Pi Camera. Webcam feed will be streaming at 3 FPS. If you want 24 FPS streaming, please make sure Pi Camera is plugged in correctly.</p><a href='https://www.getanywhere.io/assets/oa10.html#picamera'>Learn more >>></a>",
