@@ -66,6 +66,8 @@ class MjpegStream:
                     if not config.picamera_error():
                         cycle_in_seconds = 20
 
+                cycle_in_seconds = min(cycle_in_seconds, 20)
+
                 return cycle_in_seconds - (datetime.now() - self.last_frame_ts).total_seconds()
 
             def next(self):
