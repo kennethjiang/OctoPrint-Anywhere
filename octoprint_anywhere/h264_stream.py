@@ -140,8 +140,6 @@ class H264Streamer:
                 rotation = (90 if dev_settings.get('rotate90', False) else 0)
                 rotation += (-90 if dev_settings.get('rotate90N', False) else 0)
 	        self.camera.rotation=rotation
-
-                self.camera.start_preview()
             except:
 	        sarge.run('sudo service webcamd start')   # failed to start picamera. falling back to mjpeg-streamer
                 plugin.config.set_picamera_error(True)
@@ -178,7 +176,6 @@ class H264Streamer:
                     self.camera.wait_recording(2)
                 self.camera.wait_recording(4)   # record 4 more seconds to minimize the pause user views the stream again
                 self.camera.stop_recording()
-                self.camera.start_preview()
             else:
                 time.sleep(0.05)
 
@@ -213,9 +210,6 @@ class StubCamera:
 
     def capture_continuous(self, bio, format='jpeg', use_video_port=True):
         return []
-
-    def start_preview(self):
-        pass
 
     def start_recording(self, stream, **kargs):
         self.running = True
