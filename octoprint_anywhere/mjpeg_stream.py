@@ -18,18 +18,6 @@ _logger = logging.getLogger('octoprint.plugins.anywhere')
 
 class MjpegStream:
 
-    def __init__(self):
-        self._mutex = threading.RLock()
-        self._should_quit = False
-
-    def quit(self):
-        with self._mutex:
-            self._should_quit = True
-
-    def should_quit(self):
-        with self._mutex:
-            return self._should_quit
-
     def stream_up(self, stream_host, token, printer, remote_status, settings, config):
         sentryClient = config.sentry
 
@@ -87,7 +75,7 @@ class MjpegStream:
 
         backoff = ExpoBackoff(1200)
 
-        while not self.should_quit():
+        while True:
             try:
                 breadcrumbs.record(message="New UpStream: " + token)
                 stream = UpStream(printer, settings, config)

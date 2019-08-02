@@ -22,7 +22,6 @@ class MessageLoop:
 
     def __init__(self, config, plugin):
         self._mutex = threading.RLock()
-        self._should_quit = False
         self.config = config
         self.plugin = plugin
 
@@ -33,20 +32,6 @@ class MessageLoop:
         self.timelapse_uploader = None
         self.op_info = None
         self.h264_stream = None
-
-
-    def quit(self):
-        with self._mutex:
-            self._should_quit = True
-
-        if self.mjpeg_stream:
-            self.mjpeg_stream.quit()
-        if self.timelapse_uploader:
-            self.timelapse_uploader.quit()
-
-    def should_quit(self):
-        with self._mutex:
-            return self._should_quit
 
     def run_until_quit(self):
         try:
@@ -83,7 +68,7 @@ class MessageLoop:
         last_heartbeat = 0
 
         backoff = ExpoBackoff(1200)
-        while not self.should_quit():
+        while True:
             try:
                 self.ss = ServerSocket(self.config['ws_host'] + "/app/ws/device", self.config['token'], on_server_ws_msg=self.__on_server_ws_msg__)
                 wst = threading.Thread(target=self.ss.run)

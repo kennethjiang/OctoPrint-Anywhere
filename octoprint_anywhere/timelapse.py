@@ -10,23 +10,11 @@ import time
 
 class Timelapse:
 
-    def __init__(self):
-        self._mutex = threading.RLock()
-        self._should_quit = False
-
-    def quit(self):
-        with self._mutex:
-            self._should_quit = True
-
-    def should_quit(self):
-        with self._mutex:
-            return self._should_quit
-
     @backoff.on_exception(backoff.expo, Exception, max_value=6000)
     def upload_timelapses(self, stream_host, token, timelapse_dir):
         TWO_WEEKS = 60*60*24*14
 
-        while not self.should_quit():
+        while True:
             r = requests.get(stream_host + "/timelapses/", headers={"Authorization": "Bearer " + token})
             r.raise_for_status()
             resp = r.json()
