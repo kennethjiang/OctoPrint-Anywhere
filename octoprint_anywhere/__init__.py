@@ -14,6 +14,8 @@ import logging
 from .message_loop import MessageLoop
 from .config import Config
 
+_logger = logging.getLogger('octoprint.plugins.anywhere')
+
 PRINTQ_FOLDER = "OctoPrint-Anywhere"
 
 class AnywherePlugin(octoprint.plugin.SettingsPlugin,
@@ -144,6 +146,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.get_config()['registered'] = True
 
         dev_settings = self.__get_dev_settings__()
+        _logger.info(dev_settings)
         self.get_config().set_dev_settings(dev_settings)
 
         self.main_loop = MessageLoop(self.get_config(), self)
