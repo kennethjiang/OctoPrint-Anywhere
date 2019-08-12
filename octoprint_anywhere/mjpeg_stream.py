@@ -89,8 +89,8 @@ class MjpegStream:
 @backoff.on_exception(backoff.expo, Exception, max_value=1200)
 @backoff.on_predicate(backoff.expo, max_value=1200)
 def capture_mjpeg(settings):
-    snapshot_url = settings.get("snapshot").strip()
-    stream_url = settings.get("stream").strip()
+    snapshot_url = settings.get("snapshot", '').strip()
+    stream_url = settings.get("stream", '').strip()
     if snapshot_url:
         if not urlparse(snapshot_url).scheme:
             snapshot_url = "http://localhost/" + re.sub(r"^\/", "", snapshot_url)
