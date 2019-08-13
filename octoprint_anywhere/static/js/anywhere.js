@@ -8,8 +8,6 @@
 (function () {
 'use strict';
 
-PNotify.prototype.options.confirm.buttons = [];
-
 function AnywhereViewModel(parameters) {
     var self = this;
 
@@ -48,11 +46,24 @@ function AnywhereViewModel(parameters) {
                                 notice.remove();
                             }
                         },
+                        {
+                            text: "Close",
+                            addClass: "remove_button"
+                        },
                     ]
                 },
                 buttons: {
                     closer: false,
                     sticker: false
+                },
+                history: {
+                    history: false
+                },
+                before_open: function(notice) {
+                    notice
+                        .get()
+                        .find(".remove_button")
+                        .remove();
                 },
             });
         }
