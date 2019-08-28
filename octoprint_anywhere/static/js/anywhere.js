@@ -33,7 +33,7 @@ function AnywhereViewModel(parameters) {
         if (configResp.picamera_error && !picameraErrorAcked) {
             new PNotify({
                 title: "OctoPrint Anywhere",
-                text: "<p>Failed to detect and turn on Pi Camera. Webcam feed will be streaming at 3 FPS. If you want 24 FPS streaming, please make sure Pi Camera is plugged in correctly.</p><a href='https://www.getanywhere.io/assets/oa10.html#picamera'>Learn more >>></a>",
+                text: "<p>Failed to detect and turn on Pi Camera. Webcam feed will be streaming at 3 FPS. If you want 24 FPS streaming, please make sure Pi Camera is plugged in correctly.</p><a href='https://www.getanywhere.io/docs/docs/usb-cam-support/'>Learn more >>></a>",
                 type: "warning",
                 hide: false,
                 confirm: {
