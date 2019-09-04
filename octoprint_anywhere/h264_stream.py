@@ -163,7 +163,8 @@ class H264Streamer:
 
         ffmpeg_cmd = '{} -re -i pipe:0 -y -an -vcodec copy -f hls -hls_time 2 -hls_list_size 10 -hls_delete_threshold 10 -hls_flags split_by_time+delete_segments+second_level_segment_index -strftime 1 -hls_segment_filename {}/%s-%%d.ts -hls_segment_type mpegts -'.format(FFMPEG, TS_TEMP_DIR)
         _logger.info('Launching: ' + ffmpeg_cmd)
-        sub_proc = subprocess.Popen(ffmpeg_cmd.split(' '), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        FNULL = open(os.devnull, 'w')
+        sub_proc = subprocess.Popen(ffmpeg_cmd.split(' '), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL)
 
         m3u8_thread = Thread(target=self.poll_m3u8, args=(sub_proc,))
         m3u8_thread.setDaemon(True)
