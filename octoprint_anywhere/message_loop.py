@@ -39,7 +39,7 @@ class MessageLoop:
             token = self.config['token']
 
             if self.config.premium_video_eligible():
-                _logger.info('Printer is eligible for premium video streaming.')
+                _logger.warn('Printer is eligible for premium video streaming.')
                 if pi_version() or os.environ.get('CAM_SIM', False):
                     self.h264_stream = H264Streamer(stream_host, token, self.config.sentry)
                     h264_stream_thread = threading.Thread(target=self.h264_stream.start_hls_pipeline, args=(self.remote_status, self.plugin, self.config.dev_settings))
