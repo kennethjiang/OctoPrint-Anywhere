@@ -7,7 +7,6 @@ import time
 import json
 import logging
 import os
-import tempfile
 from raven import breadcrumbs
 
 from .mjpeg_stream import MjpegStream
@@ -18,7 +17,6 @@ from .remote_status import RemoteStatus
 from .utils import ip_addr, ExpoBackoff, pi_version
 
 _logger = logging.getLogger('octoprint.plugins.anywhere')
-CAM_EXCLUSIVE_USE = os.path.join(tempfile.gettempdir(), '.using_picam')
 
 class MessageLoop:
 
@@ -40,16 +38,9 @@ class MessageLoop:
             stream_host = self.config['stream_host']
             token = self.config['token']
 
-            try:
-                os.remove(CAM_EXCLUSIVE_USE)
-            except:
-                pass
-
             if self.config.premium_video_eligible():
                 _logger.warn('Printer is eligible for premium video streaming.')
                 if pi_version() or os.environ.get('CAM_SIM', False):
-                    open(CAM_EXCLUSIVE_USE, 'a').close()  # touch CAM_EXCLUSIVE_USE to indicate the intention of exclusive use of pi camera
-
                     self.h264_stream = H264Streamer(stream_host, token, self.config.sentry)
                     h264_stream_thread = threading.Thread(target=self.h264_stream.start_hls_pipeline, args=(self.remote_status, self.plugin, self.config.dev_settings))
                     h264_stream_thread.daemon = True
