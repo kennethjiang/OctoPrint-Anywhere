@@ -3,6 +3,10 @@ from __future__ import absolute_import
 import time
 import random
 import re
+import os
+import tempfile
+
+CAM_EXCLUSIVE_USE = os.path.join(tempfile.gettempdir(), '.using_picam')
 
 def ip_addr():
     ip_addresses = []
@@ -51,3 +55,13 @@ class ExpoBackoff:
             delay = self.max_seconds
         delay *= 0.5 + random.random()
         time.sleep(delay)
+
+
+def not_using_pi_camera():
+    try:
+        os.remove(CAM_EXCLUSIVE_USE)
+    except:
+        pass
+
+def using_pi_camera():
+    open(CAM_EXCLUSIVE_USE, 'a').close()  # touch CAM_EXCLUSIVE_USE to indicate the intention of exclusive use of pi camera

@@ -11,6 +11,7 @@ import backoff
 from raven import breadcrumbs
 import logging
 
+from .utils import not_using_pi_camera
 from .message_loop import MessageLoop
 from .config import Config
 
@@ -23,6 +24,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.EventHandlerPlugin,
                      octoprint.plugin.TemplatePlugin,
                      octoprint.plugin.StartupPlugin,
+                     octoprint.plugin.ShutdownPlugin,
                      octoprint.plugin.SimpleApiPlugin,
                      octoprint.plugin.WizardPlugin,):
 
@@ -98,9 +100,13 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         self.octoprint_port = port if port else self._settings.getInt(["server", "port"])
 
     def on_after_startup(self):
+        not_using_pi_camera()
         self.get_config()
         self.__ensure_storage__()
         self.start_main_thread()
+
+    def on_shutdown(self):
+        not_using_pi_camera()
 
 
     ##~~ Eventhandler mixin
