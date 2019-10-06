@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 from datetime import datetime, timedelta
 import time
-import sys
 import logging
 import StringIO
 import re
@@ -21,47 +20,68 @@ class MjpegStream:
 
     def stream_up(self, stream_host, token, printer, remote_status, settings, config):
         sentryClient = config.sentry
-        last_frame_ts = datetime.min
 
-        def seconds_remaining_until_next_cycle():
-            if remote_status['burst_count'] > 0:
-                remote_status['burst_count'] = remote_status['burst_count'] - 1
-                return 0
+        class UpStream:
+            def __init__(self, printer, settings, config):
+                 self.settings = settings
+                 self.config = config
+                 self.last_reconnect_ts = datetime.now()
+                 self.printer = printer
+                 self.remote_status = remote_status
+                 self.last_frame_ts = datetime.min
 
-            cycle_in_seconds = 1.0/3.0 # Limit the bandwidth consumption to 3 frames/second
-            if not printer.get_state_id() in ['PRINTING', 'PAUSED']:  # Printer idle
-                if remote_status['watching']:
-                    cycle_in_seconds = 2
+            def __iter__(self):
+                return self
+
+            def seconds_remaining_until_next_cycle(self):
+                if self.remote_status['burst_count'] > 0:
+                    self.remote_status['burst_count'] = self.remote_status['burst_count'] - 1
+                    return 0
+
+                cycle_in_seconds = 1.0/3.0 # Limit the bandwidth consumption to 3 frames/second
+                if not self.printer.get_state_id() in ['PRINTING', 'PAUSED']:  # Printer idle
+                    if self.remote_status['watching']:
+                        cycle_in_seconds = 2
+                    else:
+                        cycle_in_seconds = 20
                 else:
-                    cycle_in_seconds = 20
-            else:
-                if not remote_status['watching']:
-                    cycle_in_seconds = 10
+                    if not self.remote_status['watching']:
+                        cycle_in_seconds = 10
 
-            if not config.premium_video_eligible():
-                cycle_in_seconds *= config.mjpeg_stream_tier()
-            else:
-                if not config.picamera_error():
-                    cycle_in_seconds = 20
+                if not config.premium_video_eligible():
+                    cycle_in_seconds *= config.mjpeg_stream_tier()
+                else:
+                    if not config.picamera_error():
+                        cycle_in_seconds = 20
 
-            cycle_in_seconds = min(cycle_in_seconds, 20)
+                cycle_in_seconds = min(cycle_in_seconds, 20)
 
-            return cycle_in_seconds - (datetime.now() - last_frame_ts).total_seconds()
+                return cycle_in_seconds - (datetime.now() - self.last_frame_ts).total_seconds()
+
+            def next(self):
+                if (datetime.now() - self.last_reconnect_ts).total_seconds() < 600: # Allow connection to last up to 600s
+                    try:
+                        while self.seconds_remaining_until_next_cycle() > 0:
+                            time.sleep(0.1)
+
+                        self.last_frame_ts = datetime.now()
+                        return capture_mjpeg(self.settings)
+                    except:
+                        sentryClient.captureException()
+                        raise StopIteration()
+                else:
+                    raise StopIteration()  # End connection so that `requests.post` can process server response
+
 
         backoff = ExpoBackoff(1200)
 
         while True:
             try:
-                while seconds_remaining_until_next_cycle() > 0:
-                    time.sleep(0.1)
-
-                last_frame_ts = datetime.now()
-                jpg = capture_mjpeg(settings)
-                r = requests.post(stream_host+'/video/jpgs', files=dict(jpg=jpg), headers={"Authorization": "Bearer " + token})
-                r.raise_for_status()
+                breadcrumbs.record(message="New UpStream: " + token)
+                stream = UpStream(printer, settings, config)
+                requests.post(stream_host + "/video/mjpegs", data=stream, headers={"Authorization": "Bearer " + token}).raise_for_status()
                 backoff.reset()
             except Exception, e:
-                exc_type, exc_obj, exc_tb = sys.exc_info()
                 _logger.error(e)
                 backoff.more()
 
@@ -76,7 +96,8 @@ def capture_mjpeg(settings):
             snapshot_url = "http://localhost/" + re.sub(r"^\/", "", snapshot_url)
 
         with closing(urllib2.urlopen(snapshot_url)) as res:
-            return res.read()
+            jpg = res.read()
+            return "--boundarydonotcross\r\nContent-Type: image/jpeg\r\nContent-Length: {0}\r\n\r\n{1}\r\n".format(len(jpg), jpg)
 
     elif stream_url:
         if not urlparse(stream_url).scheme:
@@ -98,23 +119,16 @@ class MjpegStreamChunker:
     def __init__(self):
         self.boundary = None
         self.current_chunk = StringIO.StringIO()
-        self.header_ended = True
 
     # Return: mjpeg chunk if found
     #         None: in the middle of the chunk
     def findMjpegChunk(self, line):
         if not self.boundary:   # The first time endOfChunk should be called with 'boundary' text as input
             self.boundary = line
-            self.header_ended = False
-            return None
-
-        if not self.header_ended:
-            if line == '\r\n':
-                self.header_ended = True
+            self.current_chunk.write(line)
             return None
 
         if len(line) == len(self.boundary) and line == self.boundary:  # start of next chunk
-            self.header_ended = False
             return self.current_chunk.getvalue()
 
         self.current_chunk.write(line)
