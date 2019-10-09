@@ -191,10 +191,8 @@ class H264Streamer:
     def upload_mpegts_to_server(self, mpegts):
         try:
             files = {'file': ('ts', open(mpegts), 'rb')}
-            start = time.time()
             r = requests.post(self.stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + self.token})
             r.raise_for_status()
-            print("time: %f\n\n" % (time.time() - start))
         except:
             self.sentryClient.captureException()
             exc_type, exc_obj, exc_tb = sys.exc_info()
