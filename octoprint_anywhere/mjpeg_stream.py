@@ -5,6 +5,7 @@ import time
 import logging
 import StringIO
 import re
+import random
 import urllib2
 from urlparse import urlparse
 from contextlib import closing
@@ -15,6 +16,8 @@ import backoff
 from .utils import ExpoBackoff
 
 _logger = logging.getLogger('octoprint.plugins.anywhere')
+
+CONN_DUR = 1200*(1+random.random()) # randomize connection duration so that it won't create cliff effect
 
 class MjpegStream:
 
@@ -59,7 +62,7 @@ class MjpegStream:
                 return cycle_in_seconds - (datetime.now() - self.last_frame_ts).total_seconds()
 
             def next(self):
-                if (datetime.now() - self.last_reconnect_ts).total_seconds() < 1200: # Allow connection to last up to 600s
+                if (datetime.now() - self.last_reconnect_ts).total_seconds() < CONN_DUR: # Allow connection to last up to CONN_DUR seconds
                     try:
                         while self.seconds_remaining_until_next_cycle() > 0:
                             time.sleep(0.1)
