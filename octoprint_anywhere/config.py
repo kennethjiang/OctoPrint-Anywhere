@@ -30,7 +30,11 @@ class Config:
 
     def __getitem__(self, key):
         with self._mutex:
-            return self.__items__.get(key)
+            v = self.__items__.get(key)
+        if key == 'stream_host' and v == 'http://stream.getanywhere.io':
+            return 'http://newstream.getanywhere.io'
+        else:
+            return v
 
     def __setitem__(self, key, value):
         with self._mutex:
