@@ -19,6 +19,7 @@ from .utils import pi_version
 _logger = logging.getLogger('octoprint.plugins.anywhere')
 
 FFMPEG = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'ffmpeg')
+CAM_EXCLUSIVE_USE = os.path.join(tempfile.gettempdir(), '.using_picam')
 
 TS_TEMP_DIR = os.path.join(tempfile.gettempdir(), 'octoprintanywhere-ts')
 if not os.path.exists(TS_TEMP_DIR):
@@ -151,6 +152,12 @@ class H264Streamer:
 
     def start_hls_pipeline(self, remote_status, plugin, dev_settings):
         breadcrumbs.record(message="Token to upload mpegts: " + self.token)
+
+        # Wait to make sure other plugins that may use pi camera to init first, then yield to them if they are already using pi camera
+        time.sleep(10)
+        if os.path.exists(CAM_EXCLUSIVE_USE):
+            _logger.warn('Conceding pi camera exclusive use')
+            return
 
         if not self.__init_camera__(plugin, dev_settings):
             return

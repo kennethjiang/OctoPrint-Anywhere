@@ -14,7 +14,7 @@ from .h264_stream import H264Streamer
 from .timelapse import Timelapse
 from .server_ws import ServerSocket
 from .remote_status import RemoteStatus
-from .utils import ip_addr, ExpoBackoff, pi_version, using_pi_camera
+from .utils import ip_addr, ExpoBackoff, pi_version
 
 _logger = logging.getLogger('octoprint.plugins.anywhere')
 
@@ -41,7 +41,6 @@ class MessageLoop:
             if self.config.premium_video_eligible():
                 _logger.warn('Printer is eligible for premium video streaming.')
                 if pi_version() or os.environ.get('CAM_SIM', False):
-                    using_pi_camera()
                     self.h264_stream = H264Streamer(stream_host, token, self.config.sentry)
                     h264_stream_thread = threading.Thread(target=self.h264_stream.start_hls_pipeline, args=(self.remote_status, self.plugin, self.config.dev_settings))
                     h264_stream_thread.daemon = True
