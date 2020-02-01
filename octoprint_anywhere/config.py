@@ -16,7 +16,7 @@ class Config:
 
         import raven
         self.sentry = raven.Client(
-                'https://c6b6ad7ba91d48f9b8860151838327b9:76d65383ec9a4ea9b1a770dffa784dd9@sentry.getanywhere.io/1?verify_ssl=0',
+                'https://2b979afa37f849c1af93bcc9c88aded8:dea2054d56014d53b59376084b23e142@sentry.thespaghettidetective.com/5?verify_ssl=0',
                 release=plugin._plugin_version
                 )
 
