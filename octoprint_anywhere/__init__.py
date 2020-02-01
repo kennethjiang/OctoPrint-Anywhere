@@ -158,7 +158,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         self.main_loop = MessageLoop(self.get_config(), self)
         self.main_loop.run_until_quit()
 
-    @backoff.on_exception(backoff.expo, Exception, max_value=120)
+    @backoff.on_exception(backoff.expo, Exception, max_value=300)
     def __get_dev_settings__(self):
         r = requests.get(self.config['stream_host'] + "/api/dev_settings", headers={"Authorization": "Bearer " + self.config['token']})
         r.raise_for_status()
