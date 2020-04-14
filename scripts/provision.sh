@@ -23,12 +23,12 @@ cd /mjpg-streamer/
 sudo cp -r mjpg-streamer-experimental/* .
 sudo make
 
-sudo wget https://storage.googleapis.com/prod-pub-static/octoprint-anywhere-pics.tgz
+sudo wget https://tsd-pub-static.s3.amazonaws.com/octoprint-anywhere-pics.tgz
 sudo tar zxvf octoprint-anywhere-pics.tgz
 
 sudo cp $WD/scripts/rc.local /etc/
 
-version=1.3.9
+version=1.4.0
 sudo mkdir /octoprint && cd /octoprint
 sudo curl -o octoprint.tar.gz -L https://github.com/foosel/OctoPrint/archive/${version}.tar.gz
 sudo tar -xvf octoprint.tar.gz --strip 1
@@ -37,6 +37,8 @@ sudo tar -xvf octoprint.tar.gz --strip 1
 # RUN apt-get update && apt-get remove -f python-pip && apt-get install -y python-pip && apt-get remove -f python-pip easy_install -U pip
 #RUN pip install setuptools
 sudo apt-get -y install python-pip
+pip install --upgrade pip
+pip install --upgrade setuptools
 sudo pip install -r requirements.txt
 sudo python setup.py install
 
