@@ -3,11 +3,20 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 import time
 import logging
-import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 import re
 import random
-import urllib2
-from urlparse import urlparse
+try:
+    from urllib.request import urlopen
+except ImportError:
+    from urllib2 import urlopen
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 from contextlib import closing
 import requests
 import threading
@@ -35,6 +44,9 @@ class MjpegStream:
 
             def __iter__(self):
                 return self
+
+            def __next__(self):
+                return self.next()
 
             def seconds_remaining_until_next_cycle(self):
                 if self.remote_status['burst_count'] > 0:
@@ -71,6 +83,7 @@ class MjpegStream:
                         return capture_mjpeg(self.settings)
                     except:
                         sentryClient.captureException()
+                        import traceback; traceback.print_exc()
                         raise StopIteration()
                 else:
                     raise StopIteration()  # End connection so that `requests.post` can process server response
@@ -84,8 +97,8 @@ class MjpegStream:
                 stream = UpStream(printer, settings, config)
                 requests.post(stream_host + "/video/mjpegs", data=stream, headers={"Authorization": "Bearer " + token}).raise_for_status()
                 backoff.reset()
-            except Exception, e:
-                _logger.error(e)
+            except Exception as e:
+                _logger.error(e, exc_info=True)
                 backoff.more()
 
 
@@ -98,15 +111,15 @@ def capture_mjpeg(settings):
         if not urlparse(snapshot_url).scheme:
             snapshot_url = "http://localhost/" + re.sub(r"^\/", "", snapshot_url)
 
-        with closing(urllib2.urlopen(snapshot_url)) as res:
+        with closing(urlopen(snapshot_url)) as res:
             jpg = res.read()
-            return "--boundarydonotcross\r\nContent-Type: image/jpeg\r\nContent-Length: {0}\r\n\r\n{1}\r\n".format(len(jpg), jpg)
+            return "--boundarydonotcross\r\nContent-Type: image/jpeg\r\nContent-Length: {0}\r\n\r\n".format(len(jpg)).encode('iso-8859-1') + jpg + "\r\n".encode('iso-8859-1')
 
     elif stream_url:
         if not urlparse(stream_url).scheme:
             stream_url = "http://localhost/" + re.sub(r"^\/", "", stream_url)
 
-        with closing(urllib2.urlopen(stream_url)) as res:
+        with closing(urlopen(stream_url)) as res:
             chunker = MjpegStreamChunker()
 
             while True:

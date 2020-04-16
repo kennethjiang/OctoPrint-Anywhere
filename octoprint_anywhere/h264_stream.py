@@ -7,7 +7,10 @@ import sarge
 import sys
 import flask
 from collections import deque
-import Queue
+try:
+   import queue
+except ImportError:
+   import Queue as queue
 from threading import Thread, RLock
 import requests
 import yaml
@@ -28,7 +31,7 @@ if not os.path.exists(TS_TEMP_DIR):
 class WebcamServer:
     def __init__(self, camera):
         self.camera = camera
-        self.img_q = Queue.Queue(maxsize=1)
+        self.img_q = queue.Queue(maxsize=1)
         self.last_capture = 0
         self._mutex = RLock()
 
@@ -55,7 +58,7 @@ class WebcamServer:
         while True:
             chunk = self.img_q.get()
             msg = prefix + hdr + 'Content-Length: {}\r\n\r\n'.format(len(chunk))
-            yield msg.encode('utf-8') + chunk
+            yield msg.encode('iso-8859-1') + chunk
             prefix = '\r\n'
             time.sleep(0.15) # slow down mjpeg streaming so that it won't use too much cpu or bandwidth
       except GeneratorExit:
@@ -133,20 +136,20 @@ class H264Streamer:
             try:
                 import picamera
                 self.camera = picamera.PiCamera()
-	        self.camera.framerate=25
-	        self.camera.resolution=resolution_tuple(dev_settings)
-	        self.camera.hflip=dev_settings.get('flipH', False)
-	        self.camera.vflip=dev_settings.get('flipV', False)
+                self.camera.framerate=25
+                self.camera.resolution=resolution_tuple(dev_settings)
+                self.camera.hflip=dev_settings.get('flipH', False)
+                self.camera.vflip=dev_settings.get('flipV', False)
 
                 rotation = (90 if dev_settings.get('rotate90', False) else 0)
                 rotation += (-90 if dev_settings.get('rotate90N', False) else 0)
-	        self.camera.rotation=rotation
+                self.camera.rotation=rotation
             except:
-	        sarge.run('sudo service webcamd start')   # failed to start picamera. falling back to mjpeg-streamer
+                sarge.run('sudo service webcamd start')   # failed to start picamera. falling back to mjpeg-streamer
                 plugin.config.set_picamera_error(True)
                 self.sentryClient.captureException()
                 exc_type, exc_obj, exc_tb = sys.exc_info()
-                _logger.error(exc_obj)
+                _logger.error(exc_obj, exc_info=True)
                 return False
         return True
 
@@ -156,7 +159,7 @@ class H264Streamer:
         # Wait to make sure other plugins that may use pi camera to init first, then yield to them if they are already using pi camera
         time.sleep(10)
         if os.path.exists(CAM_EXCLUSIVE_USE):
-            _logger.warn('Conceding pi camera exclusive use')
+            _logger.warning('Conceding pi camera exclusive use')
             return
 
         if not self.__init_camera__(plugin, dev_settings):
@@ -169,7 +172,7 @@ class H264Streamer:
         requests.delete(self.stream_host+'/video/mpegts', headers={"Authorization": "Bearer " + self.token})
 
         ffmpeg_cmd = '{} -re -i pipe:0 -y -an -vcodec copy -f hls -hls_time 2 -hls_list_size 10 -hls_delete_threshold 10 -hls_flags split_by_time+delete_segments+second_level_segment_index -strftime 1 -hls_segment_filename {}/%s-%%d.ts -hls_segment_type mpegts -'.format(FFMPEG, TS_TEMP_DIR)
-        _logger.warn('Launching: ' + ffmpeg_cmd)
+        _logger.warning('Launching: ' + ffmpeg_cmd)
         FNULL = open(os.devnull, 'w')
         sub_proc = subprocess.Popen(ffmpeg_cmd.split(' '), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL)
 
@@ -190,20 +193,20 @@ class H264Streamer:
     def poll_m3u8(self, sub_proc):
         last_10 = deque([], 10)
         while True:
-            l = sub_proc.stdout.readline().strip()
+            l = sub_proc.stdout.readline().decode('iso-8859-1').strip()
             if l.endswith('.ts') and not l in last_10:
                 last_10.append(l)
                 self.upload_mpegts_to_server(os.path.join(TS_TEMP_DIR,l))
 
     def upload_mpegts_to_server(self, mpegts):
         try:
-            files = {'file': ('ts', open(mpegts), 'rb')}
+            files = {'file': ('ts', open(mpegts, 'rb'))}
             r = requests.post(self.stream_host+'/video/mpegts', data={'filename': mpegts}, files=files, headers={"Authorization": "Bearer " + self.token})
             r.raise_for_status()
         except:
             self.sentryClient.captureException()
             exc_type, exc_obj, exc_tb = sys.exc_info()
-            _logger.error(exc_obj)
+            _logger.error(exc_obj, exc_info=True)
 
 
 class StubCamera:

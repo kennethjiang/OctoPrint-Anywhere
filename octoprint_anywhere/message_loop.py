@@ -7,6 +7,7 @@ import time
 import json
 import logging
 import os
+import sys
 from raven import breadcrumbs
 
 from .mjpeg_stream import MjpegStream
@@ -17,6 +18,7 @@ from .remote_status import RemoteStatus
 from .utils import ip_addr, ExpoBackoff, pi_version
 
 _logger = logging.getLogger('octoprint.plugins.anywhere')
+__python_version__ = 3 if sys.version_info >= (3, 0) else 2
 
 class MessageLoop:
 
@@ -39,7 +41,7 @@ class MessageLoop:
             token = self.config['token']
 
             if self.config.premium_video_eligible():
-                _logger.warn('Printer is eligible for premium video streaming.')
+                _logger.warning('Printer is eligible for premium video streaming.')
                 if pi_version() or os.environ.get('CAM_SIM', False):
                     self.h264_stream = H264Streamer(stream_host, token, self.config.sentry)
                     h264_stream_thread = threading.Thread(target=self.h264_stream.start_hls_pipeline, args=(self.remote_status, self.plugin, self.config.dev_settings))
@@ -118,7 +120,7 @@ class MessageLoop:
                 self.plugin._printer.home(axis)
 
         def __process_cmd__(cmd):
-            for k, v in cmd.iteritems():
+            for k, v in cmd.items():
                 if k == 'job':
                     __process_job_cmd__(v)
                 if k == 'temps':
@@ -133,7 +135,7 @@ class MessageLoop:
                     # self.send_octoprint_data() # send current status as soon as someone is watching
 
         msgDict = json.loads(msg)
-        for k, v in msgDict.iteritems():
+        for k, v in msgDict.items():
             if k == 'cmd':
                 __process_cmd__(v)
 
@@ -160,7 +162,7 @@ class MessageLoop:
             if not self.op_info:
                 self.op_info = self.__gather_op_info__()
 
-            self.ss.send_text(json.dumps({
+            data = {
                 'hb': {
                     'ipAddrs': self.op_info['ip_addrs'],
                     'port': self.plugin.octoprint_port,
@@ -169,7 +171,11 @@ class MessageLoop:
                 },
                 'origin': 'oa',
                 'oaVersion': self.plugin._plugin_version
-            }, encoding='latin1'))
+            }
+            if __python_version__ == 3:
+                self.ss.send_text(json.dumps(data, default=str))
+            else:
+                self.ss.send_text(json.dumps(data, encoding='iso-8859-1', default=str))
         except:
             self.config.sentry.captureException()
             import traceback; traceback.print_exc()
@@ -185,8 +191,8 @@ class MessageLoop:
                 }
 
     def __download_and_print__(self, file_url, file_name):
-	r = requests.get(file_url, allow_redirects=True)
-	r.raise_for_status()
-	target_path = os.path.join(self._g_code_folder, file_name)
-	open(target_path, "wb").write(r.content)
-	self.plugin._printer.select_file(target_path, False, printAfterSelect=True)
+        r = requests.get(file_url, allow_redirects=True)
+        r.raise_for_status()
+        target_path = os.path.join(self._g_code_folder, file_name)
+        open(target_path, "wb").write(r.content)
+        self.plugin._printer.select_file(target_path, False, printAfterSelect=True)

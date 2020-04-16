@@ -147,7 +147,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
             self.get_config()['registered'] = True
 
         dev_settings = self.__get_dev_settings__()
-        _logger.warn(dev_settings)
+        _logger.warning(dev_settings)
         self.get_config().set_dev_settings(dev_settings)
 
         self.main_loop = MessageLoop(self.get_config(), self)
@@ -168,7 +168,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
                 time.sleep(5)
 
     def start_print(self, print_to_start):
-        self._logger.warn('Received print command for gcodfile_id: {} '.format(print_to_start['id']))
+        self._logger.warning('Received print command for gcodfile_id: {} '.format(print_to_start['id']))
         self.current_gcodefile_id = print_to_start['id']
         file_url = print_to_start['url']
         file_name = print_to_start['filename']
@@ -182,7 +182,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
         r.raise_for_status()
         target_path = os.path.join(self._g_code_folder, file_name)
         open(target_path, "wb").write(r.content)
-        self._logger.warn('Finished downloading to target_path: {}'.format(target_path))
+        self._logger.warning('Finished downloading to target_path: {}'.format(target_path))
         self._printer.select_file(target_path, False, printAfterSelect=True)
 
     def __ensure_storage__(self):
@@ -194,6 +194,7 @@ class AnywherePlugin(octoprint.plugin.SettingsPlugin,
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 __plugin_name__ = "OctoPrint Anywhere"
+__plugin_pythoncompat__ = ">=2.7,<4"
 
 def __plugin_load__():
     global __plugin_implementation__

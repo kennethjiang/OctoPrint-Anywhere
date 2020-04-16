@@ -66,6 +66,7 @@ class Config:
 
         except IOError:
             self.sentry.captureException()
+            import traceback; traceback.print_exc()
             self.reset_config()
 
     def save_config(self):
@@ -95,6 +96,7 @@ class Config:
                     yaml.dump(self.__items__, outfile, default_flow_style=False)
         except:
             self.sentry.captureException()
+            import traceback; traceback.print_exc()
 
     def set_dev_settings(self, dev_settings):
         self.dev_settings = dev_settings
