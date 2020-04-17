@@ -113,7 +113,7 @@ class MessageLoop:
 
         def __process_jog_cmd__(cmd):
             self.remote_status['burst_count'] = 5    # send 5 continous snapshots to make jogging more responsive
-            axis = cmd.keys()[0]
+            axis = list(cmd.keys())[0]
             if isinstance(cmd[axis], int):
                 self.plugin._printer.jog(cmd)
             else:
